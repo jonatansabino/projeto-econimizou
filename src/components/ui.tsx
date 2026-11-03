@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useCallback, useRef, useState, type Ref, type ComponentProps, type ComponentRef, type PropsWithChildren } from 'react';
+import { useCallback, useRef, useState, type Ref, type ComponentProps, type ComponentRef, type PropsWithChildren, type ReactNode } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -58,7 +58,7 @@ export function Chips({ options, value, onChange, label, focusRef }: { focusRef?
     </Pressable>)}
   </ScrollView></View>;
 }
-export function Sheet({ title, onClose, children }: PropsWithChildren<{ title: string; onClose: () => void }>) {
+export function Sheet({ title, onClose, children, footer }: PropsWithChildren<{ title: string; onClose: () => void; footer?: ReactNode }>) {
   const { data } = useFinance();
   const insets = useSafeAreaInsets();
   return <Modal transparent animationType={data.preferences.animationsEnabled ? 'fade' : 'none'} visible onRequestClose={onClose}>
@@ -67,6 +67,7 @@ export function Sheet({ title, onClose, children }: PropsWithChildren<{ title: s
         <View accessibilityViewIsModal style={styles.sheet}>
           <View style={ui.between}><Text accessibilityRole="header" style={ui.title}>{title}</Text><IconButton label={`Fechar ${title}`} icon="close" onPress={onClose} /></View>
           <KeyboardScroll style={{ flexShrink: 1 }} contentContainerStyle={{ gap: 18, paddingBottom: 32 }}>{children}</KeyboardScroll>
+          {footer && <View style={{ gap: 12 }}>{footer}</View>}
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>

@@ -46,6 +46,7 @@ function Message({ message }: { message: ChatMessage }) {
   const { data, resolveProposal } = useFinance();
   const task = useTask();
   const proposal = message.proposal;
+  const goal = message.goalProposal;
   const category = data.categories.find((item) => item.id === proposal?.categoryId);
   const user = message.role === 'user';
   const text = data.preferences.hideAmounts ? message.text.replace(/R\$\s*[\d.,]+/g, 'R$ ••••••') : message.text;
@@ -63,6 +64,18 @@ function Message({ message }: { message: ChatMessage }) {
       </> : <Text style={message.status === 'confirmed' ? ui.success : ui.text}>{message.status === 'confirmed' ? '✓ Registro confirmado' : 'Registro cancelado'}</Text>}
       <ErrorText error={task.error} />
     </View>}
+    {goal && <View style={styles.proposal}>
+      <Text style={ui.label}>Meta de economia · {goal.name}</Text>
+      <Text style={styles.proposalAmount}>{data.preferences.hideAmounts ? '••••••' : formatMoney(goal.targetCents)}</Text>
+      <Text style={ui.text}>Valor já guardado: {data.preferences.hideAmounts ? '••••••' : formatMoney(goal.savedCents)}</Text>
+      <Text style={ui.text}>Criar uma meta não movimenta o saldo ou registra uma despesa.</Text>
+      {message.status === 'pending' ? <>
+        <Button label="Confirmar criação da meta" icon="flag-outline" loading={task.busy} onPress={() => { void task.run(() => resolveProposal(message.id, true)); }} />
+        <Button label="Cancelar criação da meta" secondary disabled={task.busy} onPress={() => { void task.run(() => resolveProposal(message.id, false)); }} />
+      </> : <Text style={message.status === 'confirmed' ? ui.success : ui.text}>{message.status === 'confirmed' ? '✓ Meta criada' : 'Criação da meta cancelada'}</Text>}
+      <ErrorText error={task.error} />
+    </View>}
+
   </View>;
 }
 const styles = StyleSheet.create({

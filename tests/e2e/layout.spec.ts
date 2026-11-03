@@ -8,8 +8,8 @@ test('etapa 14: telas estreitas, foco após reduzir altura e modal com rolagem',
   await page.goto('/configuracoes');
   await page.getByRole('button', { name: 'Editar perfil', exact: true }).click();
   await page.getByRole('textbox', { name: 'Seu nome', exact: true }).fill('Um nome bastante longo para verificar o layout do aplicativo');
-  await page.getByRole('textbox', { name: 'Avatar personalizado (emoji)', exact: true }).focus();
-  await expect(page.getByRole('textbox', { name: 'Avatar personalizado (emoji)', exact: true })).toBeInViewport();
+  await page.getByRole('textbox', { name: 'Seu nome', exact: true }).focus();
+  await expect(page.getByRole('textbox', { name: 'Seu nome', exact: true })).toBeInViewport();
   await page.getByRole('button', { name: 'Salvar perfil', exact: true }).click();
   await page.getByRole('tab', { name: 'Início', exact: true }).click();
   await expect(page).toHaveURL('http://127.0.0.1:8097/');

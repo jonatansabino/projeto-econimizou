@@ -124,7 +124,7 @@ test('metas: criar, editar, progresso, aceitar/ignorar sugestões e restaurar ap
 
 test('configurações: perfil, categorias, preferências, central e privacidade', async ({ page }) => {
   await home(page); await tab(page, 'Ajustes'); await button(page, 'Editar perfil').click();
-  await field(page, 'Seu nome').fill('João'); await button(page, 'Escolha seu avatar: 🚀').click(); await button(page, 'Salvar perfil').click();
+  await field(page, 'Seu nome').fill('João'); await button(page, 'Escolher avatar Brisa').click(); await button(page, 'Salvar perfil').click();
   await button(page, 'Gerenciar categorias').click(); await button(page, 'Nova categoria').click(); await field(page, 'Nome da categoria').fill('Educação'); await button(page, 'Salvar categoria').click();
   await button(page, 'Editar categoria: Educação').click(); await field(page, 'Nome da categoria').fill('Cursos'); await button(page, 'Salvar categoria').click();
   await button(page, 'Excluir categoria: Cursos').click(); await button(page, 'Excluir definitivamente').click(); await expect(button(page, 'Editar categoria: Cursos')).toHaveCount(0);

@@ -2,8 +2,11 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { Switch, Text, View } from 'react-native';
 
+import { AvatarPicker } from '@/components/avatar-picker';
+import { ProfileAvatar } from '@/components/profile-avatar';
+import { resolveAvatar } from '@/domain/avatar';
 import { Screen } from '@/components/screen';
-import { Button, Chips, ErrorText, Field, Sheet, ui, useTask } from '@/components/ui';
+import { Button, ErrorText, Field, Sheet, ui, useTask } from '@/components/ui';
 import { colors } from '@/constants/theme';
 import { useFinance } from '@/state/finance-context';
 
@@ -13,7 +16,7 @@ export default function SettingsScreen() {
   const task = useTask();
   const unread = data.notifications.filter((item) => !item.read).length;
   return <Screen title="Do seu jeito." description="Seu perfil, suas preferências e seus dados.">
-    <View style={ui.card}><View style={ui.row}><Text style={{ fontSize: 40 }}>{data.profile.avatar}</Text><View style={{ flex: 1 }}><Text style={ui.title}>{data.profile.name}</Text><Text style={ui.text}>Perfil local · conta demonstrativa</Text></View></View><Button label="Editar perfil" secondary icon="create-outline" onPress={() => setProfileOpen(true)} /></View>
+    <View style={ui.card}><View style={ui.row}><ProfileAvatar value={data.profile.avatar} size={64} label={`Avatar de ${data.profile.name}`} /><View style={{ flex: 1 }}><Text style={ui.title}>{data.profile.name}</Text><Text style={ui.text}>Perfil local · conta demonstrativa</Text></View></View><Button label="Editar perfil" secondary icon="create-outline" onPress={() => setProfileOpen(true)} /></View>
     <View style={ui.card}>
       <Text style={ui.title}>Preferências</Text>
       <Preference label="Ocultar valores" description="Oculta valores em cards, listas, relatórios e propostas do chat. Formulários de edição continuam visíveis." value={data.preferences.hideAmounts} disabled={task.busy} onChange={(value) => { void task.run(() => updatePreferences({ hideAmounts: value })); }} />
@@ -35,13 +38,13 @@ function Preference({ label, description, value, disabled, onChange }: { label: 
 function ProfileEditor({ onClose }: { onClose: () => void }) {
   const { data, updateProfile } = useFinance();
   const [name, setName] = useState(data.profile.name);
-  const [avatar, setAvatar] = useState(data.profile.avatar);
+  const [avatar, setAvatar] = useState<string>(() => resolveAvatar(data.profile.avatar).id);
   const task = useTask();
-  return <Sheet title="Editar perfil" onClose={onClose}>
-    <Field label="Seu nome" value={name} onChangeText={setName} maxLength={60} autoCapitalize="words" />
-    <Chips label="Escolha seu avatar" value={avatar} onChange={setAvatar} options={['🌿', '🌻', '🚀', '🐱', '🦊', '💎', '🌎', '🎯'].map((value) => ({ label: value, value }))} />
-    <Field label="Avatar personalizado (emoji)" value={avatar} onChangeText={setAvatar} maxLength={8} />
+  return <Sheet title="Editar perfil" onClose={onClose} footer={<>
     <ErrorText error={task.error} />
     <Button label="Salvar perfil" loading={task.busy} onPress={() => { void task.run(() => updateProfile({ name, avatar })).then((ok) => { if (ok) onClose(); }); }} />
+  </>}>
+    <Field label="Seu nome" editable={!task.busy} value={name} onChangeText={setName} maxLength={60} autoCapitalize="words" />
+    <AvatarPicker value={avatar} onChange={setAvatar} disabled={task.busy} />
   </Sheet>;
 }

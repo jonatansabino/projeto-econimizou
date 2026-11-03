@@ -51,6 +51,10 @@ function uniqueIds(items: { id: string }[]) {
   return new Set(items.map((item) => item.id)).size === items.length;
 }
 
+export function validateGoal(value: unknown): asserts value is Goal {
+  if (!record(value) || !text(value.id) || !text(value.name) || !amount(value.targetCents) || value.targetCents === 0 || !amount(value.savedCents)) throw new Error('Meta inválida.');
+}
+
 export function validateTransaction(value: unknown, categories: Category[]): asserts value is Transaction {
   if (!record(value) || !text(value.id) || !text(value.description) || !amount(value.amountCents) || value.amountCents === 0 ||
     !type(value.type) || !isCivilDate(value.date) || !categories.some((category) => category.id === value.categoryId && category.type === value.type)) {
@@ -72,17 +76,32 @@ export function validateFinanceData(value: unknown): asserts value is FinanceDat
   const categories = value.categories as Category[];
   for (const transaction of value.transactions) validateTransaction(transaction, categories);
   for (const goal of value.goals) {
-    if (!record(goal) || !text(goal.id) || !text(goal.name) || !amount(goal.targetCents) || goal.targetCents === 0 || !amount(goal.savedCents)) throw new Error('Meta inválida.');
+    validateGoal(goal);
   }
   if (![categories, value.transactions as Transaction[], value.goals as Goal[]].every(uniqueIds)) throw new Error('Identificadores duplicados.');
   for (const message of value.chatMessages) {
     if (!record(message) || !text(message.id) || !text(message.text) || !['user', 'assistant'].includes(String(message.role))) throw new Error('Mensagem inválida.');
+    if (message.proposal !== undefined && message.goalProposal !== undefined) throw new Error('Mensagem com propostas conflitantes.');
     if (message.proposal !== undefined) {
       if (!record(message.proposal) || message.role !== 'assistant' || !['pending', 'confirmed', 'cancelled'].includes(String(message.status))) throw new Error('Confirmação inválida.');
       // Categorias podem ser removidas depois de um registro confirmado ou cancelado.
       if (!text(message.proposal.categoryId)) throw new Error('Categoria da proposta inválida.');
       validateTransaction({ ...message.proposal, id: message.id }, message.status === 'pending' ? categories : [{ id: message.proposal.categoryId, name: 'Histórico', type: message.proposal.type as TransactionType }]);
-    } else if (message.status !== undefined) throw new Error('Confirmação sem transação.');
+    } else if (message.goalProposal !== undefined) {
+      if (!record(message.goalProposal) || message.role !== 'assistant' || !['pending', 'confirmed', 'cancelled'].includes(String(message.status))) throw new Error('Confirmação de meta inválida.');
+      validateGoal({ ...message.goalProposal, id: message.id });
+    } else if (message.status !== undefined) throw new Error('Confirmação sem proposta.');
+    if (message.request !== undefined) {
+      if (message.role !== 'assistant' || !record(message.request) || message.status !== undefined || message.proposal !== undefined || message.goalProposal !== undefined) throw new Error('Pergunta de acompanhamento inválida.');
+      if (message.request.kind === 'goal') {
+        if (message.request.name !== undefined && !text(message.request.name)) throw new Error('Nome da meta inválido.');
+        if (message.request.targetCents !== undefined && (!amount(message.request.targetCents) || message.request.targetCents === 0)) throw new Error('Valor da meta inválido.');
+      } else if (message.request.kind === 'transaction') {
+        const draft = message.request.draft;
+        if (!record(draft) || !text(draft.categoryId)) throw new Error('Dados de acompanhamento inválidos.');
+        validateTransaction({ ...draft, id: message.id, amountCents: 1 }, [{ id: draft.categoryId, name: 'Histórico', type: draft.type as TransactionType }]);
+      } else throw new Error('Tipo de acompanhamento inválido.');
+    }
   }
   for (const recommendation of value.recommendations) {
     if (!record(recommendation) || !text(recommendation.id) || !text(recommendation.title) || !text(recommendation.description) || !['pending', 'accepted', 'ignored'].includes(String(recommendation.status))) throw new Error('Recomendação inválida.');

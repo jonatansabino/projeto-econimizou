@@ -1,3 +1,4 @@
+import { DEFAULT_AVATAR } from '../domain/avatar.ts';
 import { localDate, type FinanceData } from '../domain/finance.ts';
 
 // Executado apenas quando não há dados salvos; as datas acompanham a primeira abertura.
@@ -6,7 +7,7 @@ export function createMockData(now = new Date()): FinanceData {
   return {
     version: 2,
     onboarding: { completed: false },
-    profile: { name: 'Jonatan', avatar: '💰' },
+    profile: { name: 'Jonatan', avatar: DEFAULT_AVATAR },
     preferences: { hideAmounts: false, notificationsEnabled: true, animationsEnabled: true },
     categories: [
       { id: 'salary', name: 'Salário', type: 'income' },

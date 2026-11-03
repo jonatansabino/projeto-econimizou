@@ -1,4 +1,4 @@
-import { interpretCommand, normalize } from '../domain/features.ts';
+import { chatDecision, interpretCommand, normalize } from '../domain/features.ts';
 import { createMockData } from '../data/mock-data.ts';
 import type { FinanceRepository } from '../data/finance-repository.ts';
 import { validateFinanceData, type FinanceData, type TransactionInput, type Goal, type Category, localDate } from '../domain/finance.ts';
@@ -75,6 +75,22 @@ export function createFinanceStore(repository: FinanceRepository, seed = createM
   };
   const notify = (data: FinanceData, title: string, body: string): FinanceData => data.preferences.notificationsEnabled
     ? { ...data, notifications: [...data.notifications, { id: newId('notification'), title, body, date: localDate(), read: false }] } : data;
+
+  const resolveMessage = (data: FinanceData, id: string, confirm: boolean): FinanceData => {
+    const message = data.chatMessages.find((item) => item.id === id);
+    if ((!message?.proposal && !message?.goalProposal) || message.status !== 'pending') throw new Error('Esta proposta já foi respondida.');
+    const goal = message.goalProposal;
+    const transaction = message.proposal;
+    const updated: FinanceData = { ...data,
+      transactions: confirm && transaction ? [...data.transactions, { ...transaction, id: newId('tx') }] : data.transactions,
+      goals: confirm && goal ? [...data.goals, { ...goal, id: newId('goal') }] : data.goals,
+      chatMessages: [...data.chatMessages.map((item) => item.id === id ? { ...item, status: confirm ? 'confirmed' as const : 'cancelled' as const } : item),
+        { id: newId('message'), role: 'assistant', text: confirm
+          ? goal ? 'Meta criada! Você já pode acompanhar seu progresso na aba Metas. Nenhum valor foi movimentado no extrato.' : 'Transação registrada! Seu saldo e extrato já foram atualizados.'
+          : goal ? 'Tudo bem, não criei essa meta.' : 'Tudo bem, não registrei essa transação.' }],
+    };
+    return confirm ? notify(updated, goal ? 'Meta criada pelo chat' : 'Transação registrada pelo chat', goal?.name ?? transaction!.description) : updated;
+  };
 
   return {
     initialize,
@@ -154,24 +170,20 @@ export function createFinanceStore(repository: FinanceRepository, seed = createM
       const content = text.trim();
       if (!content || content.length > 1000) return Promise.reject(new Error('Escreva uma mensagem de até 1.000 caracteres.'));
       return commit((data) => {
-        const response = interpretCommand(content, data.categories, data.transactions);
-        return { ...data, chatMessages: [...data.chatMessages,
-          { id: newId('message'), role: 'user', text: content },
-          { id: newId('message'), role: 'assistant', ...response, ...(response.proposal ? { status: 'pending' as const } : {}) },
+        const last = [...data.chatMessages].reverse().find((item) => item.role === 'assistant');
+        const userMessage = { id: newId('message'), role: 'user' as const, text: content };
+        const decision = chatDecision(content);
+        if (last?.status === 'pending' && (last.proposal || last.goalProposal) && decision !== undefined) {
+          return resolveMessage({ ...data, chatMessages: [...data.chatMessages, userMessage] }, last.id, decision);
+        }
+        const response = interpretCommand(content, data.categories, data.transactions, new Date(), last?.request);
+        return { ...data, chatMessages: [...data.chatMessages, userMessage,
+          { id: newId('message'), role: 'assistant', ...response, ...(response.proposal || response.goalProposal ? { status: 'pending' as const } : {}) },
         ] };
       });
     },
     resolveProposal(id: string, confirm: boolean) {
-      return commit((data) => {
-        const message = data.chatMessages.find((item) => item.id === id);
-        if (!message?.proposal || message.status !== 'pending') throw new Error('Esta proposta já foi respondida.');
-        const updated: FinanceData = { ...data,
-          transactions: confirm ? [...data.transactions, { ...message.proposal, id: newId('tx') }] : data.transactions,
-          chatMessages: [...data.chatMessages.map((item) => item.id === id ? { ...item, status: confirm ? 'confirmed' as const : 'cancelled' as const } : item),
-            { id: newId('message'), role: 'assistant', text: confirm ? 'Transação registrada! Seu saldo e extrato já foram atualizados.' : 'Tudo bem, não registrei essa transação.' }],
-        };
-        return confirm ? notify(updated, 'Transação registrada pelo chat', message.proposal.description) : updated;
-      });
+      return commit((data) => resolveMessage(data, id, confirm));
     },
     updatePreferences(preferences: Partial<FinanceData['preferences']>) {
       return commit((data) => ({ ...data, preferences: { ...data.preferences, ...preferences } }));

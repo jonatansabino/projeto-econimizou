@@ -109,6 +109,8 @@ Atualmente, funciona apenas com dados locais e ainda não possui conexão com ba
 
 A ideia é continuar melhorando o aplicativo aos poucos.
 
+<img width="646" height="818" alt="Captura de tela de 2026-11-03 10-39-23" src="https://github.com/user-attachments/assets/4b7f2b0e-5965-4847-ac46-cea122080f01" />
+
 ---
 
 **Desenvolvido com 💚 utilizando Vibe Coding.**

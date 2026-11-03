@@ -147,3 +147,5 @@ O Chat IA interpreta comandos por regras locais, sem enviar dados para serviços
 Use os botões de confirmação ou responda “sim”/“cancelar”. Nada é salvo como meta ou transação antes da confirmação. Criar uma meta não movimenta o saldo. Transações confirmadas atualizam os totais compartilhados de Home, Extrato e Relatórios. Conversas, valores pendentes e registros são persistidos no AsyncStorage, permitindo continuar após reabrir o aplicativo.
 
 O assistente é uma simulação: frases ambíguas, valores inválidos ou múltiplos movimentos precisam ser esclarecidos. Ele não oferece compreensão irrestrita de linguagem natural.
+
+Obs: Versão Préva, será implementado uma versão mais completa.

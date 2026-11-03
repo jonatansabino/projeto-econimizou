@@ -1,18 +1,38 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router';
-import * as SplashScreen from 'expo-splash-screen';
-import { useColorScheme } from 'react-native';
+import { DarkTheme, Stack, ThemeProvider } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 
-import { AnimatedSplashOverlay } from '@/components/animated-icon';
-import AppTabs from '@/components/app-tabs';
+import { colors } from '@/constants/theme';
+import { FinanceProvider, useFinance } from '@/state/finance-context';
 
-SplashScreen.preventAutoHideAsync();
+const theme = {
+  ...DarkTheme,
+  colors: { ...DarkTheme.colors, primary: colors.primary, background: colors.background, card: colors.surface, text: colors.text, border: colors.border },
+};
 
-export default function TabLayout() {
-  const colorScheme = useColorScheme();
+export default function RootLayout() {
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <AnimatedSplashOverlay />
-      <AppTabs />
+    <ThemeProvider value={theme}>
+      <StatusBar style="light" />
+      <FinanceProvider>
+        <AppNavigator />
+      </FinanceProvider>
     </ThemeProvider>
   );
+}
+
+function AppNavigator() {
+  const { data } = useFinance();
+  const needsOnboarding = data.onboarding?.completed === false;
+  return <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }}>
+    <Stack.Protected guard={!needsOnboarding} redirectTo="/onboarding">
+      <Stack.Screen name="(tabs)" />
+      <Stack.Screen name="transacao" />
+      <Stack.Screen name="relatorios" />
+      <Stack.Screen name="categorias" />
+      <Stack.Screen name="notificacoes" />
+      <Stack.Screen name="privacidade" />
+      <Stack.Screen name="+not-found" />
+    </Stack.Protected>
+    <Stack.Screen name="onboarding" options={{ gestureEnabled: !needsOnboarding }} />
+  </Stack>;
 }

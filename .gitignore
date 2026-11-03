@@ -41,3 +41,10 @@ example
 # generated native folders
 /ios
 /android
+
+# Testes de interface
+/test-results/
+/playwright-report/
+
+# Exportação nativa de validação
+/dist-native/

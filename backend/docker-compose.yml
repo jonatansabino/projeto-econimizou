@@ -1,0 +1,50 @@
+name: economizou-api
+
+services:
+  app:
+    build: .
+    container_name: economizou-api
+    restart: "no"
+    ports:
+      - "8080:80"
+    volumes:
+      - ./:/var/www/html
+      - vendor_data:/var/www/html/vendor
+      - writable_data:/var/www/html/writable
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      TZ: America/Sao_Paulo
+    healthcheck:
+      test: ["CMD", "php", "-r", "exit(@file_get_contents('http://localhost/health') === false ? 1 : 0);"]
+      interval: 10s
+      timeout: 5s
+      start_period: 30s
+      retries: 6
+
+  db:
+    image: mariadb:11.4
+    container_name: economizou-db
+    restart: "no"
+    environment:
+      MARIADB_DATABASE: economizou
+      MARIADB_USER: economizou
+      MARIADB_PASSWORD: economizou
+      MARIADB_ROOT_PASSWORD: root
+      TZ: America/Sao_Paulo
+    ports:
+      - "3307:3306"
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      start_period: 30s
+      retries: 12
+    volumes:
+      - mariadb_data:/var/lib/mysql
+
+volumes:
+  mariadb_data:
+  vendor_data:
+  writable_data:

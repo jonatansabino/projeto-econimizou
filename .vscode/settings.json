@@ -1,4 +1,5 @@
 {
+  "eslint.workingDirectories": ["./frontend"],
   "editor.codeActionsOnSave": {
     "source.fixAll": "explicit",
     "source.organizeImports": "explicit",

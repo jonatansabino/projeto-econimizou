@@ -45,6 +45,7 @@ A raiz usada nesta colaboração foi `/mnt/DEV/DEVTEAM/economizou`. Caminhos ant
 
 ## Funcionalidades do frontend já existentes
 
+- Login e cadastro incluem opções visuais de Google e Outlook, com aviso de disponibilidade futura; não realizam autenticação social nem chamadas à API.
 - Home: nome/avatar, notificações, saldo e totais calculados pelo estado compartilhado, ocultar valores, atalhos e transações recentes por categoria.
 - Extrato: pesquisa, filtros, cadastro, edição e exclusão de receitas/despesas. Formulário com máscara brasileira, categorias, descrição, calendário, validação e prevenção de salvamento duplicado.
 - Receita do mês: ação para editar uma receita existente; quando houver várias, permite escolher o registro. Sem receitas, abre o cadastro correspondente. Totais acompanham as transações.

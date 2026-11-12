@@ -12,19 +12,23 @@ economizou/
 
 ## Iniciar tudo pela raiz
 
-Com Docker/Compose e Node.js/npm instalados, execute na raiz:
+Com Docker/Compose e Node.js/npm instalados, execute na raiz, tanto no Windows (PowerShell/CMD) quanto no Linux:
 
 ```bash
-./start
-# Ou:
 npm start
+# Alternativa sem npm:
+node start.mjs
+# Atalho no Linux/macOS:
+./start
 ```
 
 O script sobe API e MariaDB em segundo plano, aguarda os serviços ficarem saudáveis, aplica apenas migrations pendentes (`php spark migrate --all`) e inicia o Expo no terminal. Em caso de falha no Docker ou nas migrations, o Expo não é iniciado. Os volumes e dados existentes são preservados.
 
+O inicializador usa somente módulos nativos do Node.js, sem Bash, `npx.cmd` ou dependências adicionais. O Expo é iniciado com o mesmo Node do comando principal. Use Node.js 22.13+ (linha 22), 24.3+ (linha 24) ou 26+; a versão é verificada antes de subir os serviços. No Windows, mantenha o Docker Desktop iniciado e configurado para containers Linux. Não é necessário Git Bash ou WSL para executar `npm start`.
+
 Na primeira utilização, instale as dependências com `npm ci --prefix frontend`. O script cria `backend/.env` e `frontend/.env.local` a partir dos exemplos somente quando não existem. Confira o endereço da API no arquivo do frontend: para celular físico, use o IP do computador na rede local.
 
-Opções são encaminhadas para o Expo: `./start --clear`, `npm start -- --web` ou `npm start -- --port 8081`. Use `./start --help` para consultar a ajuda.
+Opções são encaminhadas para o Expo: `npm start -- --clear`, `npm start -- --web` ou `npm start -- --port 8081`. Use `npm start -- --help` para consultar a ajuda.
 
 `Ctrl+C` encerra o Expo e mantém API/banco ligados. Para parar os containers sem apagar dados:
 

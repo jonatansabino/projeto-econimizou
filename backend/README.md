@@ -18,6 +18,24 @@ O `.env` local já foi criado. Ele é ignorado pelo Git; `.env.example` contém 
 
 O serviço `app` só inicia depois de o health check do MariaDB passar. O Composer é incluído na imagem e instala as dependências do `composer.lock`. O código é montado do diretório atual, e os volumes `vendor_data` e `writable_data` guardam dependências e arquivos graváveis sem exigir permissões de escrita no restante do código. O volume `mariadb_data` preserva o banco entre reinícios. As migrations são executadas explicitamente, não durante o início do container.
 
+### Entrypoint no Windows e Linux
+
+O entrypoint fica em `/usr/local/bin/economizou-entrypoint`, fora do bind mount do código. O Dockerfile converte CRLF em LF, aplica permissão `0755`, verifica `/bin/sh` e valida a sintaxe antes de definir o caminho absoluto no `ENTRYPOINT`. O `.gitattributes` da raiz mantém scripts `.sh` e `start` em LF nos checkouts Windows/Linux.
+
+Se uma imagem antiga apresentar `exec ...: no such file or directory`, reconstrua e valide sem apagar volumes:
+
+```bash
+docker compose build --no-cache app
+docker compose up -d --wait
+docker compose ps
+curl http://localhost:8080/health
+# Somente após a API estar saudável:
+docker compose exec app php spark migrate --all
+docker compose exec app php spark migrate:status
+```
+
+Um shebang com CRLF pode fazer o Linux procurar `/bin/sh\r` e informar que o arquivo não existe, mesmo quando o script está presente. Não é necessário instalar `dos2unix` na máquina nem mudar o banco ou os volumes.
+
 ## Acessar a API
 
 - Base: <http://localhost:8080/>

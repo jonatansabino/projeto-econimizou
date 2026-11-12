@@ -17,7 +17,11 @@ COPY --from=composer /usr/bin/composer /usr/local/bin/composer
 COPY docker/apache/000-default.conf /etc/apache2/sites-available/000-default.conf
 COPY docker/php/development.ini /usr/local/etc/php/conf.d/economizou.ini
 COPY docker/entrypoint.sh /usr/local/bin/economizou-entrypoint
-RUN chmod +x /usr/local/bin/economizou-entrypoint
+# Checkouts Windows podem trazer CRLF; normalize antes de executar o shebang.
+RUN sed -i 's/\r$//' /usr/local/bin/economizou-entrypoint \
+    && chmod 0755 /usr/local/bin/economizou-entrypoint \
+    && test -x /bin/sh \
+    && /bin/sh -n /usr/local/bin/economizou-entrypoint
 
 WORKDIR /var/www/html
 COPY composer.json composer.lock ./
@@ -27,5 +31,5 @@ RUN composer dump-autoload --optimize \
     && chown -R www-data:www-data writable
 
 EXPOSE 80
-ENTRYPOINT ["economizou-entrypoint"]
+ENTRYPOINT ["/usr/local/bin/economizou-entrypoint"]
 CMD ["apache2-foreground"]

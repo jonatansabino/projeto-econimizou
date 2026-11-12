@@ -1,0 +1,4 @@
+# Scripts precisam de LF mesmo em checkouts Windows com core.autocrlf=true.
+*.sh text eol=lf
+/start text eol=lf
+Dockerfile text eol=lf

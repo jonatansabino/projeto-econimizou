@@ -92,3 +92,22 @@ Validações executadas:
 O serviço HTTP de testes usa variáveis de ambiente sem pontos, compatíveis com Apache (`CI_ENVIRONMENT`, `app_baseURL`, `authapi_testRateMultiplier`). O aumento do limite só funciona em `testing`; o PHPUnit verifica o limite normal. Não executar PHPUnit e E2E simultaneamente, pois compartilham o banco de teste descartável.
 
 Recuperação de senha foi excluída por solicitação explícita do usuário, inclusive tela, link e envio de e-mail. CRUDs/sincronização financeira e implantação HTTPS continuam fora desta etapa. Consulte [docs/auth.md](docs/auth.md) para endpoints, configuração e comandos reproduzíveis.
+
+## Entrypoint Windows/Linux — 12/11/2026
+
+A cópia Linux inspecionada já tinha `docker/entrypoint.sh` em LF; o caminho de destino estava correto e a API estava saudável. Portanto, não foi possível confirmar o conteúdo do checkout Windows que apresentou o erro. Um script temporário CRLF reproduziu `not found` dentro da imagem Linux e passou a executar após a remoção de CR; isso confirma o mecanismo de falha do shebang `/bin/sh\r`.
+
+O Dockerfile agora normaliza CRLF para LF com `sed`, aplica `0755`, verifica que `/bin/sh` é executável, valida a sintaxe e usa o caminho absoluto no `ENTRYPOINT`. O `.gitattributes` da raiz fixa LF para `.sh`, `start` e Dockerfiles. O entrypoint original, Compose, configuração CodeIgniter/MariaDB e migrations não precisaram de alterações. README atualizado com instruções de reconstrução.
+
+Validações realizadas:
+
+- `docker compose build --no-cache app`: passou.
+- `docker compose up -d --wait`: passou; API e MariaDB saudáveis.
+- Imagem reconstruída: arquivo instalado sem CR, com shebang `#!/bin/sh`, permissão `0755` e sintaxe válida. `/bin/sh` existe e aponta para `dash`.
+- `docker compose ps` confirmou o novo entrypoint absoluto e a API em execução.
+- `GET http://localhost:8080/health`: HTTP 200, `status: ok`, `database: connected`.
+- Somente após a API saudável, `php spark migrate --all`: concluiu. Comparação do histórico antes/depois confirmou versões, horários e batches idênticos, sem recriação de migrations.
+- Volume MariaDB permaneceu `economizou-api_mariadb_data`. Nenhum volume ou dado foi removido.
+- `docker compose config --quiet`, `git check-attr` e `git diff --check`: passaram.
+
+Testes executados neste host Linux com Docker; não houve execução em Windows/Docker Desktop. Não foi necessário instalar `dos2unix` ou alterar o frontend.

@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+PROJECT_ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+
+if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
+  printf '%s\n' 'Uso: ./start [opções do Expo]' '     npm start -- [opções do Expo]' '' \
+    'Sobe API/banco, aguarda a saúde, aplica migrations pendentes e inicia o Expo.' \
+    'Exemplo: ./start --clear' \
+    'Ctrl+C encerra o Expo; os containers continuam em segundo plano.'
+  exit 0
+fi
+
+trap 'printf "\nFalha na inicialização (linha %s). O Expo não será iniciado se Docker ou migrations falharem.\n" "$LINENO" >&2' ERR
+
+for command in docker npm npx; do
+  if ! command -v "$command" >/dev/null 2>&1; then
+    printf 'Comando necessário não encontrado: %s\n' "$command" >&2
+    exit 1
+  fi
+done
+docker compose version >/dev/null
+docker info >/dev/null
+
+if [[ ! -f "$PROJECT_ROOT/frontend/node_modules/expo/package.json" ]]; then
+  printf 'Instale as dependências antes de iniciar: cd "%s/frontend" && npm ci\n' "$PROJECT_ROOT" >&2
+  exit 1
+fi
+
+# Cria somente configurações locais ausentes; nunca sobrescreve valores existentes.
+if [[ ! -f "$PROJECT_ROOT/backend/.env" ]]; then
+  cp "$PROJECT_ROOT/backend/.env.example" "$PROJECT_ROOT/backend/.env"
+  printf 'Criado backend/.env com a configuração local de desenvolvimento.\n'
+fi
+if [[ ! -f "$PROJECT_ROOT/frontend/.env.local" ]]; then
+  cp "$PROJECT_ROOT/frontend/.env.example" "$PROJECT_ROOT/frontend/.env.local"
+  printf 'Criado frontend/.env.local. Ajuste o endereço da API para usar um celular na rede.\n'
+fi
+
+cd "$PROJECT_ROOT/backend"
+printf '\n[1/3] Subindo API e MariaDB e aguardando os serviços ficarem saudáveis...\n'
+docker compose up -d --build --wait app db
+
+printf '\n[2/3] Aplicando migrations pendentes, incluindo Shield...\n'
+docker compose exec -T app php spark migrate --all
+
+printf '\n[3/3] Iniciando Expo. API: http://localhost:8080 | Saúde: http://localhost:8080/health\n'
+printf 'Ctrl+C encerra o Expo; API e banco continuam ligados.\n\n'
+cd "$PROJECT_ROOT/frontend"
+exec npx expo start "$@"

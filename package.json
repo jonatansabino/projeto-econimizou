@@ -1,0 +1,7 @@
+{
+  "name": "economizou-workspace",
+  "private": true,
+  "scripts": {
+    "start": "bash ./start"
+  }
+}

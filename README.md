@@ -1,5 +1,7 @@
 # Economizou
 
+Para retomar o desenvolvimento em outro computador ou conversa do Codex, consulte [CONTEXTO.md](CONTEXTO.md).
+
 Projeto organizado em duas aplicações independentes:
 
 ```text

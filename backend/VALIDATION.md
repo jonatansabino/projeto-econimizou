@@ -47,7 +47,7 @@ Antes desta etapa o banco `economizou` continha apenas `bootstrap_checks` e `mig
 
 - `codeigniter4/shield` 1.4.1 e sua dependência `codeigniter4/settings` 2.4.0, com arquivos de configuração que estendem o pacote oficial e helpers carregados. As migrations do fornecedor não foram copiadas nem alteradas.
 - Tabelas oficiais: `users`, `auth_identities`, `auth_logins`, `auth_token_logins`, `auth_remember_tokens`, `auth_groups_users`, `auth_permissions_users` e `settings`.
-- Migration `2026-11-11-000002_CreateFinancialTables`: oito tabelas financeiras, Models correspondentes e validações. Valores em BIGINT/centavos; FKs de dono e FKs compostas de categoria/tipo, meta e transação; índices, unicidade mensal/categorias e timestamps de auditoria.
+- Migration `2026-11-11-000002_CreateFinancialTables`: oito tabelas financeiras, Models correspondentes e validações. Valores em BIGINT/centavos; FKs de dono e FKs compostas de categoria/tipo, meta e Transação; índices, unicidade mensal/categorias e timestamps de auditoria.
 - `UserOwnedModel` obtém o usuário autenticado do Shield, aplica escopo nas leituras, exige dono em alterações/exclusões e não aceita dono/auditoria do payload. Acesso ao Query Builder e operações não suportadas são bloqueados.
 - `docker-compose.test.yml`: MariaDB 11.4 separado, em tmpfs, sem porta pública nem volumes de desenvolvimento. O bootstrap PHPUnit recusa conexões fora de `db-test/economizou_test` e verifica o banco efetivo antes das migrations.
 
@@ -111,3 +111,42 @@ Validações realizadas:
 - `docker compose config --quiet`, `git check-attr` e `git diff --check`: passaram.
 
 Testes executados neste host Linux com Docker; não houve execução em Windows/Docker Desktop. Não foi necessário instalar `dos2unix` ou alterar o frontend.
+
+## Cadastro e personalização opcional — 13/11/2026
+
+O endpoint de cadastro existente continua usando Shield, validação oficial de senha e token real. Nova migration `2026-11-13-000004_AddProfilePersonalization` adiciona nascimento (DATE), objetivo, renda mensal (BIGINT em centavos) e conclusão do fluxo em `user_preferences`. Perfis anteriores recebem conclusão padrão; novos cadastros começam pendentes. Nenhuma tabela `users` ou migration aplicada foi recriada.
+
+O PATCH `/api/auth/profile` aceita atualizações parciais, valida os opcionais e usa o usuário do token/Model com escopo. Campos omitidos são preservados; null limpa opcionais; identificadores de terceiros e campos desconhecidos são rejeitados. GET `/api/auth/me`, cadastro e login incluem os metadados de personalização. Não há cálculo de idade, recomendação automática ou lançamento financeiro a partir da renda.
+
+Arquivos: `app/Database/Migrations/2026-11-13-000004_AddProfilePersonalization.php`, `app/Libraries/ProfilePersonalization.php`, `app/Models/UserPreferenceModel.php`, `app/Controllers/Api/AuthController.php`, `tests/feature/AuthApiTest.php`, `tests/database/SchemaIntegrityTest.php` e `docs/auth.md`.
+
+Validação:
+
+- `docker compose exec -T app composer test`: **52 testes e 464 asserções passaram**, usando somente MariaDB isolado. A suíte inclui rollback/reaplicação no banco de teste.
+- Novos casos: opcionais vazios/null, nascimento em ano bissexto, data inválida/futura/caractere nulo, objetivo desconhecido, renda negativa/fracionária/string/acima da precisão, metadados persistidos via PATCH/GET, edição/remoção, isolamento de dois usuários e rejeição de dono no payload. Testes anteriores de cadastro inválido, duplicidade e autenticação continuam passando. Senha comum de oito caracteres foi rejeitada pelo Shield sem criar usuário.
+- Sintaxe PHP de `app/` e `tests/`: passou.
+- `php spark migrate --all`: somente a nova migration aplicada no batch 4, às 08:55:57. `migrate:status` confirmou os batches anteriores com seus horários originais.
+- `SHOW COLUMNS` confirmou os novos campos e renda BIGINT. O volume de desenvolvimento foi preservado.
+- `/health` principal retornou HTTP 200, com banco conectado, após a integração.
+
+Não houve integração social, envio automático de finanças, alteração de migrations anteriores, remoção de dados ou rollback no banco da aplicação.
+
+## Categorias por usuário — 13/11/2026
+
+Implementados endpoints autenticados GET/POST `/api/categories` e PATCH/DELETE `/api/categories/{id}`, reutilizando Shield, CSRF/cookie Web e Bearer mobile. Model mantém escopo fechado por dono, buscas próprias com soft deletes e proteção de categorias em uso no banco. Header `X-Account-ID` apenas confirma a conta esperada; nunca define o dono. CORS permite DELETE e o novo header nas origens existentes.
+
+Migration complementar `2026-11-13-000005_AddCategorySynchronization` adiciona `client_key` com unicidade por dono e `deleted_at` à tabela existente. Executada no banco principal via `php spark migrate --all`: somente nova migration aplicada, batch 5, preservando versões/batches/horários anteriores. Reexecução confirmou ausência de reaplicações. Não houve exclusão de dados ou volumes, refresh ou rollback no banco principal.
+
+`docker compose exec -T app composer test`: **57 testes / 503 asserções**, todos passaram no MariaDB isolado, incluindo os 5 novos testes de categorias e as regressões de integridade/FKs/Models. Casos novos cobrem autenticação, campos inválidos/dono forjado, isolamento entre dois usuários para leitura/escrita/exclusão, nome igual permitido em usuários distintos, unicidade/idempotência, edição, tipo fixo, exclusão lógica repetível/restauração, header de conta divergente e preflight DELETE. PHP syntax check do controller passou.
+
+Frontend: TypeScript/ESLint sem avisos, 143 testes de domínio e **114/114** E2E completos passaram. Fluxo real no navegador confirma CRUD no MariaDB, envio explícito de categorias locais, mesma conta em outro contexto sem cache, isolamento de outro usuário e falha de rede sem sucesso fictício. Bundles Web/Android/iOS gerados, sem execução nativa em dispositivo ou emulador. Não houve teste simultâneo de PHPUnit/E2E. Contrato em [docs/categories.md](docs/categories.md); lista de arquivos e detalhes em [../frontend/VALIDATION.md](../frontend/VALIDATION.md).
+
+## Entradas/saídas no banco e reinício autorizado — 13/11/2026
+
+Implementados snapshot financeiro autenticado e gravação atômica de transações por usuário, com chaves de cliente, revisão, geração e operação idempotente. CategoriesController exige geração atual para mutações e compartilha o bloqueio por usuário. Nova migration 000006 aditiva, sem alteração das anteriores. O comando administrativo finance:reset exige --all-users --confirm, apaga apenas registros financeiros e invalida caches, preservando users, auth_identities e user_preferences.
+
+`composer test`: **62 testes / 563 asserções**, todos passaram no MariaDB isolado. Inclui API vazia de novas contas, CRUD/idempotência, lote inválido revertido integralmente, dono/categoria/revisão incorretos, limpeza global mantendo usuários/identidades/perfis e bloqueio de operações de gerações anteriores. A leitura de estado usa upsert com lock exclusivo antes do SELECT FOR UPDATE, validada também por dez consultas concorrentes no E2E.
+
+Frontend: **151 testes de domínio** e **120/120 E2E** finais passaram, além de TypeScript/ESLint e bundles Web/Android/iOS. Testes usam API/banco isolados; não houve PHPUnit e E2E simultâneos. Sem execução em dispositivo/emulador nativo.
+
+No banco principal, a migration 000006 foi aplicada e, após autorização explícita do usuário para todas as contas, executado `php spark finance:reset --all-users --confirm`. Consultas antes/depois confirmaram **2 usuários e 2 perfis preservados**, categorias/transações/metas zeradas. As demais tabelas financeiras operacionais também foram esvaziadas transacionalmente; já estavam vazias no momento da execução. Credenciais, perfis e volumes não foram removidos. `/health` confirmou conexão saudável. Nenhuma alteração ao CONTEXTO.md nesta solicitação.

@@ -191,3 +191,27 @@ test('snapshot é imutável para impedir alterações fora das ações persistid
   assert.throws(() => { store.getSnapshot().data.transactions.push(input); }, TypeError);
   assert.throws(() => { store.getSnapshot().data.preferences.hideAmounts = true; }, TypeError);
 });
+
+test('preferências suportam e validam dia de recebimento de renda', async () => {
+  const { store } = fixture();
+  await store.initialize();
+  assert.equal(store.getSnapshot().data.preferences.incomeDay, undefined);
+
+  await store.updatePreferences({ incomeDay: 5 });
+  assert.equal(store.getSnapshot().data.preferences.incomeDay, 5);
+
+  await store.updatePreferences({ incomeDay: null });
+  assert.equal(store.getSnapshot().data.preferences.incomeDay, null);
+
+  const invalidZero = seed();
+  invalidZero.preferences.incomeDay = 0;
+  assert.throws(() => validateFinanceData(invalidZero), /Dia de recebimento inválido/);
+
+  const invalidOver = seed();
+  invalidOver.preferences.incomeDay = 32;
+  assert.throws(() => validateFinanceData(invalidOver), /Dia de recebimento inválido/);
+
+  const invalidFloat = seed();
+  invalidFloat.preferences.incomeDay = 5.5;
+  assert.throws(() => validateFinanceData(invalidFloat), /Dia de recebimento inválido/);
+});

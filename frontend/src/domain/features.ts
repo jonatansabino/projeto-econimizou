@@ -1,4 +1,4 @@
-import { isCivilDate, localDate, summarize, formatMoney, type Category, type Transaction, type TransactionInput, type Goal, type TransactionType } from './finance.ts';
+import { formatMoney, isCivilDate, localDate, summarize, type Category, type Goal, type Transaction, type TransactionInput, type TransactionType } from './finance.ts';
 
 export type GoalProposal = Omit<Goal, 'id'>;
 export type ChatRequest =
@@ -102,7 +102,7 @@ function chooseCategory(description: string, type: TransactionType, categories: 
   const compatible = categories.filter((item) => item.type === type);
   return compatible.find((item) => key.includes(normalize(item.name)))
     ?? compatible.find((item) => hint && normalize(item.name) === hint)
-    ?? compatible.find((item) => normalize(item.name) === (type === 'expense' ? 'outros' : 'renda extra')) ?? compatible[0];
+    ?? compatible.find((item) => normalize(item.name) === (type === 'expense' ? 'outros' : 'Renda Extra')) ?? compatible[0];
 }
 function goalName(text: string) {
   const detail = text.match(/\bpara\s+(?:eu\s+)?(.+)/i)?.[1]
@@ -128,7 +128,7 @@ function expenseDescription(text: string, type: TransactionType) {
 }
 function transactionResponse(draft: Omit<TransactionInput, 'amountCents'>, amount: ReturnType<typeof readAmount>, categories: Category[]): ChatResponse {
   const category = categories.find((item) => item.id === draft.categoryId && item.type === draft.type) ?? chooseCategory(draft.description, draft.type, categories);
-  if (!category) return { text: 'Crie uma categoria compatível em Ajustes antes de registrar essa transação.' };
+  if (!category) return { text: 'Crie uma categoria compatível em Ajustes antes de registrar essa Transação.' };
   const current = { ...draft, categoryId: category.id };
   if (!amount.amountCents) return { text: `${amount.issue === 'multiple' ? 'Encontrei mais de um valor. Registre um movimento por vez. ' : amount.issue === 'invalid' ? 'O valor informado não é válido. ' : ''}Qual foi o valor ${draft.type === 'expense' ? 'gasto' : 'recebido'} em “${draft.description}”? Informe em reais, por exemplo R$ 45,00.`, request: { kind: 'transaction', draft: current } };
   return { text: 'Entendi! Confira os dados abaixo. Só vou registrar após sua confirmação.', proposal: { ...current, amountCents: amount.amountCents } };
@@ -136,7 +136,7 @@ function transactionResponse(draft: Omit<TransactionInput, 'amountCents'>, amoun
 
 export function interpretCommand(text: string, categories: Category[], transactions: Transaction[], now = new Date(), context?: ChatRequest): ChatResponse {
   const normalized = normalize(text).replace(/\s+/g, ' ');
-  if (chatDecision(text) === false) return { text: 'Tudo bem, cancelei este pedido. Nenhuma meta ou transação foi criada.' };
+  if (chatDecision(text) === false) return { text: 'Tudo bem, cancelei este pedido. Nenhuma meta ou Transação foi criada.' };
   if (/^(?:eu )?(?:nao|nunca) (?:gastei|paguei|recebi|ganhei|almocei|comprei|quero|pretendo)/.test(normalized)) return { text: 'Entendido. Não vou preparar nenhum registro com essa mensagem.' };
   const wantsGoal = /\b(?:quero|preciso|criar|crie|nova|montar|fazer|pretendo|gostaria)\b/.test(normalized) && /\b(?:meta|economia|economizar|poupar|juntar|guardar)\b/.test(normalized)
     || /\b(?:quero|pretendo|gostaria de) comprar\b/.test(normalized);
@@ -175,7 +175,7 @@ export function interpretCommand(text: string, categories: Category[], transacti
     return transactionResponse(context.draft, amount, categories);
   }
   if (/econom|dica|meta/.test(normalized)) return { text: 'Uma ideia para começar: revise pequenos gastos recorrentes e defina uma reserva que caiba no orçamento. Se quiser criar uma meta, diga “Quero economizar para comprar um videogame”.' };
-  return { text: 'Sou um assistente local simulado. Posso preparar metas, despesas e receitas. Exemplos: “Quero economizar para comprar um videogame”, “Almocei por R$ 45” ou “Recebi R$ 200 de renda extra”. Sempre peço confirmação antes de salvar.' };
+  return { text: 'Sou um assistente local simulado. Posso preparar metas, despesas e receitas. Exemplos: “Quero economizar para comprar um videogame”, “Almocei por R$ 45” ou “Recebi R$ 200 de Renda Extra”. Sempre peço confirmação antes de salvar.' };
 }
 
 export function transactionTotals(transactions: Transaction[]) {

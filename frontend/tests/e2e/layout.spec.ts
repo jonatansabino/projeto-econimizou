@@ -1,12 +1,12 @@
-import { existingUser } from './existing-user';
 import { expect, test } from '@playwright/test';
+import { existingUser } from './existing-user';
 
 test.beforeEach(async ({ page }) => existingUser(page));
 
 test('etapa 14: telas estreitas, foco após reduzir altura e modal com rolagem', async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 480 });
   await page.goto('/configuracoes');
-  await page.getByRole('button', { name: 'Editar perfil', exact: true }).click();
+  await page.getByRole('button', { name: 'Editar Perfil', exact: true }).click();
   await page.getByRole('textbox', { name: 'Seu nome', exact: true }).fill('Um nome bastante longo para verificar o layout do aplicativo');
   await page.getByRole('textbox', { name: 'Seu nome', exact: true }).focus();
   await expect(page.getByRole('textbox', { name: 'Seu nome', exact: true })).toBeInViewport();
@@ -20,7 +20,7 @@ test('etapa 14: telas estreitas, foco após reduzir altura e modal com rolagem',
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   }
   await page.goto('/metas');
-  await page.getByRole('button', { name: 'Nova meta', exact: true }).click();
+  await page.getByRole('button', { name: 'Nova Meta', exact: true }).click();
   await page.getByRole('textbox', { name: 'Nome da meta', exact: true }).fill('Reserva em tela pequena');
   await page.getByRole('textbox', { name: 'Valor desejado (R$)', exact: true }).fill('1000');
   await page.setViewportSize({ width: 320, height: 340 });

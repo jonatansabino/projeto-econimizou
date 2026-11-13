@@ -1,4 +1,4 @@
-import { parseDate, parseMoney, normalize } from './features.ts';
+import { normalize, parseDate, parseMoney } from './features.ts';
 import type { Category, TransactionInput, TransactionType } from './finance.ts';
 
 export type TransactionDraft = { type: TransactionType; description: string; value: string; date: string; categoryId: string };
@@ -15,7 +15,7 @@ export function maskMoney(value: string) {
 export function validateDraft(draft: TransactionDraft, categories: Category[]): { errors: DraftErrors; input?: TransactionInput } {
   const errors: DraftErrors = {};
   let amountCents = 0; let date = '';
-  if (!draft.description.trim()) errors.description = 'Informe a descrição da transação.';
+  if (!draft.description.trim()) errors.description = 'Informe a descrição da Transação.';
   try { amountCents = parseMoney(draft.value); } catch { errors.value = 'Informe um valor maior que zero, em reais.'; }
   try { date = parseDate(draft.date); } catch { errors.date = 'Informe uma data válida no formato DD/MM/AAAA.'; }
   if (!categories.some((category) => category.id === draft.categoryId && category.type === draft.type)) errors.categoryId = 'Selecione uma categoria compatível.';

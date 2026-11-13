@@ -8,7 +8,7 @@ test('opções sociais informam disponibilidade sem autenticar em login e cadast
 
   for (const screen of ['login', 'cadastro']) {
     if (screen === 'cadastro') await page.getByRole('button', { name: 'Criar uma conta', exact: true }).click();
-    await expect(page.getByText('ou continue com', { exact: true })).toBeVisible();
+    await expect(page.getByText('Ou continue com', { exact: true })).toBeVisible();
     for (const provider of ['Google', 'Outlook']) {
       const button = page.getByRole('button', { name: `Continuar com ${provider}`, exact: true });
       await expect(button).toBeVisible();

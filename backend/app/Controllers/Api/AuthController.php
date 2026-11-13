@@ -60,6 +60,12 @@ class AuthController extends BaseController
             'name' => $profile['display_name'] ?? $user->username ?? 'Você',
             'email' => $user->email,
             'avatar' => $profile['avatar'] ?? 'dicebear:adventurer:1',
+            'personalization' => [
+                'birth_date' => $profile['birth_date'] ?? null,
+                'financial_objective' => $profile['financial_objective'] ?? null,
+                'monthly_income_cents' => isset($profile['monthly_income_cents']) ? (int) $profile['monthly_income_cents'] : null,
+                'completed' => (bool) ($profile['personalization_completed'] ?? true),
+            ],
         ];
     }
 
@@ -123,7 +129,7 @@ class AuthController extends BaseController
                 return $this->failure('Não foi possível criar a conta.', 422);
             }
             $user = $users->findById($users->getInsertID());
-            $db->table('user_preferences')->insert(['user_id' => $user->id, 'display_name' => $data['name'], 'avatar' => 'dicebear:adventurer:1']);
+            $db->table('user_preferences')->insert(['user_id' => $user->id, 'display_name' => $data['name'], 'avatar' => 'dicebear:adventurer:1', 'personalization_completed' => 0]);
             $response = $this->authenticated($user, 201);
             if (! $db->transStatus()) {
                 throw new \RuntimeException('registration_failed');
@@ -171,12 +177,18 @@ class AuthController extends BaseController
     public function profile()
     {
         $data = $this->payload();
-        if ($data === null || ! is_string($data['name'] ?? null) || ! is_string($data['avatar'] ?? null) || ! $this->validateData($data, ['name' => 'required|max_length[60]', 'avatar' => ['required', 'regex_match[/^dicebear:adventurer:(?:[1-9]|1[0-2])$/]']])) {
-            return $this->failure('Confira o nome e o avatar.', 422);
+        $allowed = ['name', 'avatar', 'birth_date', 'financial_objective', 'monthly_income_cents', 'personalization_completed'];
+        if ($data === null || $data === [] || array_diff(array_keys($data), $allowed) !== []) {
+            return $this->failure('Informe apenas os campos do seu perfil.', 422);
         }
+        $errors = \App\Libraries\ProfilePersonalization::errors($data);
+        if (array_key_exists('name', $data) && (! is_string($data['name']) || trim($data['name']) === '' || mb_strlen(trim($data['name'])) > 60)) $errors['name'] = 'Informe seu nome, com até 60 caracteres.';
+        if (array_key_exists('avatar', $data) && (! is_string($data['avatar']) || ! preg_match('/^dicebear:adventurer:(?:[1-9]|1[0-2])$/D', $data['avatar']))) $errors['avatar'] = 'Escolha um avatar válido.';
+        if ($errors !== []) return $this->failure('Confira os dados do perfil.', 422, $errors);
         $model = new UserPreferenceModel();
         $current = $model->first();
-        $row = ['display_name' => trim($data['name']), 'avatar' => $data['avatar']];
+        $row = $data;
+        if (isset($row['name'])) { $row['display_name'] = trim($row['name']); unset($row['name']); }
         $result = $current ? $model->update($current['id'], $row) : $model->insert($row);
         if ($result === false) {
             return $this->failure('Não foi possível salvar o perfil.', 422);

@@ -1,3 +1,4 @@
+import { useAuth } from '@/state/auth-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createContext, useContext, useEffect, useMemo, useState, useSyncExternalStore, type PropsWithChildren } from 'react';
 import { ActivityIndicator, AppState, Pressable, StyleSheet, Text, View } from 'react-native';
@@ -5,7 +6,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { colors } from '@/constants/theme';
 import { apiUrl } from '@/constants/api';
-import { createAccountFinanceRepository } from '@/data/account-finance-repository';
+import { ProfilePhotoProvider } from '@/state/profile-photo-context';
+import { accountStorageKey, createAccountFinanceRepository } from '@/data/account-finance-repository';
 import type { AuthUser } from '@/domain/auth';
 import { FINANCE_STORAGE_KEY } from '@/data/finance-repository';
 import { localDate, summarize } from '@/domain/finance';
@@ -14,7 +16,8 @@ import { createFinanceStore, type FinanceStore } from '@/state/finance-store';
 const FinanceContext = createContext<{ store: FinanceStore; today: string; legacyDataPresent: boolean } | null>(null);
 
 export function FinanceProvider({ children, identity }: PropsWithChildren<{ identity: AuthUser }>) {
-  const [store] = useState(() => createFinanceStore(createAccountFinanceRepository(AsyncStorage, apiUrl, identity)));
+  const auth = useAuth();
+  const [store] = useState(() => createFinanceStore(createAccountFinanceRepository(AsyncStorage, apiUrl, identity, true), undefined, auth.getCategoryApi(identity.id), auth.getFinancialApi(identity.id)));
   const [today, setToday] = useState(() => localDate());
   const [legacyDataPresent, setLegacyDataPresent] = useState(false);
   const value = useMemo(() => ({ store, today, legacyDataPresent }), [store, today, legacyDataPresent]);
@@ -28,9 +31,21 @@ export function FinanceProvider({ children, identity }: PropsWithChildren<{ iden
   const snapshot = useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot);
   useEffect(() => { void store.initialize(); }, [store]);
 
+  useEffect(() => {
+    if (snapshot.status === 'ready') void store.refreshCommitmentRecurrences(today).catch(() => {});
+  }, [store, today, snapshot.status]);
+
+  useEffect(() => {
+    if (snapshot.status !== 'ready') return;
+    const refresh = () => { void store.refreshCategories().catch(() => {}); };
+    refresh(); const timer = setInterval(refresh, 60000);
+    const subscription = AppState.addEventListener('change', state => { if (state === 'active') refresh(); });
+    return () => { clearInterval(timer); subscription.remove(); };
+  }, [store, snapshot.status]);
+
   return (
     <FinanceContext.Provider value={value}>
-      {snapshot.status === 'ready' ? children : (
+      {snapshot.status === 'ready' ? <ProfilePhotoProvider scope={accountStorageKey(apiUrl, identity.id)}>{children}</ProfilePhotoProvider> : (
         <SafeAreaView style={styles.safe}>
           <View style={styles.content}>
             <Text style={styles.title}>Econimizou</Text>
@@ -60,9 +75,10 @@ export function useFinance() {
   return {
     ...store,
     today,
-    legacyDataPresent,
+    legacyDataPresent: legacyDataPresent && !snapshot.data.financeResetKey,
     data: snapshot.data,
     error: snapshot.error,
+    categoryError: snapshot.categoryError ?? null,
     summary: summarize(snapshot.data.transactions, today.slice(0, 7)),
     addTransaction: store.addTransaction,
     updateTransaction: store.updateTransaction,

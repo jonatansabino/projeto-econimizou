@@ -10,10 +10,10 @@ import { useFinance } from '@/state/finance-context';
 
 export function TransactionList({ transactions }: { transactions: Transaction[] }) {
   const { data } = useFinance();
-  if (!transactions.length) return <Empty text="Nenhuma transação encontrada. Registre um movimento ou ajuste os filtros." />;
+  if (!transactions.length) return <Empty text="Nenhuma Transação encontrada. Registre um movimento ou ajuste os filtros." />;
   return <View style={styles.list}>{transactions.map((item) => {
     const category = data.categories.find((entry) => entry.id === item.categoryId);
-    return <Pressable key={item.id} accessibilityRole="button" accessibilityLabel={`Editar transação: ${item.description}`}
+    return <Pressable key={item.id} accessibilityRole="button" accessibilityLabel={`Editar Transação: ${item.description}`}
       onPress={() => router.push({ pathname: '/transacao', params: { id: item.id } })} style={({ pressed }) => [styles.row, pressed && { opacity: 0.55 }]}>
       <View style={[styles.icon, item.type === 'income' && { backgroundColor: '#173C30' }]}><Ionicons name={item.type === 'income' ? 'arrow-down' : 'arrow-up'} color={item.type === 'income' ? colors.primary : '#FDA4AF'} size={20} /></View>
       <View style={{ flex: 1, gap: 5 }}><Text numberOfLines={2} style={ui.label}>{item.description}</Text><Text style={styles.meta}>{category?.name} · {displayDate(item.date)}</Text></View>

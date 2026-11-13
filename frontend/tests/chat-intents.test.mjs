@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
+import { createFinanceRepository } from '../src/data/finance-repository.ts';
 import { createMockData } from '../src/data/mock-data.ts';
 import { interpretCommand } from '../src/domain/features.ts';
 import { summarize, validateFinanceData } from '../src/domain/finance.ts';
-import { createFinanceRepository } from '../src/data/finance-repository.ts';
 import { createFinanceStore } from '../src/state/finance-store.ts';
 
 const now = new Date(2026, 10, 3, 12);
@@ -65,7 +65,7 @@ test('relato de ontem usa data local e despesas/receitas novas podem substituir 
   const context = interpret('Quero economizar para comprar um videogame').request;
   const expense = interpret('Almocei por R$ 45', context);
   assert.equal(expense.proposal.type, 'expense'); assert.equal(expense.goalProposal, undefined);
-  const income = interpret('Recebi R$ 100 de renda extra', context);
+  const income = interpret('Recebi R$ 100 de Renda Extra', context);
   assert.equal(income.proposal.type, 'income'); assert.equal(income.goalProposal, undefined);
 });
 

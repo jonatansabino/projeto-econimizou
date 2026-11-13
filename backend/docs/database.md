@@ -48,7 +48,7 @@ erDiagram
     goals o|--o{ saving_recommendations : orienta
 ```
 
-As FKs compostas incluem `user_id`, e a de categoria de transação inclui também `type`. Portanto, nem um SQL administrativo consegue vincular uma transação à categoria de outro dono/tipo. Exclusões/alterações de chaves usam **RESTRICT**, preservando registros referenciados. O soft delete dos usuários continua sendo o mecanismo oficial do Shield; limpeza física de dados financeiros não foi implementada. A migration antiga e os volumes Docker foram mantidos.
+As FKs compostas incluem `user_id`, e a de categoria de Transação inclui também `type`. Portanto, nem um SQL administrativo consegue vincular uma Transação à categoria de outro dono/tipo. Exclusões/alterações de chaves usam **RESTRICT**, preservando registros referenciados. O soft delete dos usuários continua sendo o mecanismo oficial do Shield; limpeza física de dados financeiros não foi implementada. A migration antiga e os volumes Docker foram mantidos.
 
 ## Uso seguro dos Models
 
@@ -75,3 +75,20 @@ O bootstrap PHPUnit aceita apenas `testing` + grupo `tests` + host `db-test` + b
 A migration financeira verifica dependências e recusa tabelas já existentes em vez de recriá-las. Como o DDL do MariaDB não é transacional para um conjunto de tabelas, uma interrupção durante a primeira aplicação deve ser diagnosticada antes de tentar novamente; não há limpeza automática destrutiva. Em execuções normais, o controle de migrations evita reaplicar o que já foi executado.
 
 Referências: [Shield](https://github.com/codeigniter4/shield), [migrations do CodeIgniter](https://codeigniter4.github.io/userguide/dbmgmt/migration.html).
+
+## Complemento de perfil — 13/11/2026
+
+A migration `2026-11-13-000004_AddProfilePersonalization` acrescenta campos à tabela existente `user_preferences`:
+
+| Campo | Tipo | Uso |
+| --- | --- | --- |
+| `birth_date` | DATE, opcional | Data civil válida de 1900 até hoje; não calcula idade |
+| `financial_objective` | VARCHAR(30), opcional | `organize`, `save`, `debt_free` ou `achievement` |
+| `monthly_income_cents` | BIGINT, opcional | Renda de planejamento, de 0 a 9007199254740991 centavos |
+| `personalization_completed` | TINYINT, padrão 1 | Contas existentes seguem normalmente; novo cadastro grava 0 |
+
+Restrições CHECK validam renda, opções e flag. Nascimento e demais campos são validados pelo endpoint e Model antes da gravação. A FK/índice único por usuário e a auditoria existentes são preservados. Null remove um opcional; omissão no PATCH preserva o valor anterior. Não há duplicação de `users`, senha própria ou Transação criada a partir da renda. Veja [contrato do perfil](auth.md#cadastro-e-personalização--13112026).
+
+## Categorias sincronizadas
+
+A migration complementar `2026-11-13-000005_AddCategorySynchronization` acrescenta `categories.client_key VARCHAR(128) NULL`, `deleted_at DATETIME NULL` e o índice único `(user_id, client_key)`. Mantém a tabela, dados anteriores, unicidade de nomes por usuário/tipo e FKs. O Model reutiliza o escopo fechado do Shield e exclusão lógica, bloqueando exclusão de categorias já usadas por transações/limites no banco. Consulte [categories.md](categories.md).

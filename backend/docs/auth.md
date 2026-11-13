@@ -15,7 +15,7 @@ O fluxo é **Criar conta → autenticação Shield → onboarding, quando necess
 | PATCH | `/api/auth/profile` | Atualiza nome e avatar do usuário autenticado. Não recebe IDs de outros usuários. |
 | GET | `/api/auth/csrf` | Prepara a proteção CSRF do cliente web. |
 
-O objeto `user` contém somente `id` (string), `name`, `email` e `avatar`. O login é verificado pelo autenticador de sessão do Shield via `check()`, sem criar uma sessão PHP de login. As credenciais e hashes são manipulados pelo `UserModel` e pelas identidades oficiais. O filtro Bearer usa o autenticador de Access Tokens do Shield, incluindo validade, revogação, escopo `api`, bloqueios e contas desativadas. As rotas HTML do Shield não foram habilitadas.
+O objeto `user` contém `id` (string), `name`, `email`, `avatar` e `personalization` (nascimento, objetivo, renda em centavos e conclusão do fluxo opcional). Senhas e identidades internas não são retornadas. O login é verificado pelo autenticador de sessão do Shield via `check()`, sem criar uma sessão PHP de login. As credenciais e hashes são manipulados pelo `UserModel` e pelas identidades oficiais. O filtro Bearer usa o autenticador de Access Tokens do Shield, incluindo validade, revogação, escopo `api`, bloqueios e contas desativadas. As rotas HTML do Shield não foram habilitadas.
 
 Validações retornam 422, e-mail duplicado 409, credenciais/sessões inválidas 401 e limite de tentativas 429 com `Retry-After`. Login incorreto não informa se o e-mail existe. O limitador usa contadores atômicos no MariaDB: cinco tentativas por e-mail e trinta por IP a cada quinze minutos; cadastro tem dez tentativas por IP no mesmo período. A tabela operacional `auth_rate_limits` foi adicionada em uma nova migration, sem alterar migrations aplicadas.
 
@@ -93,3 +93,50 @@ npm run test:e2e
 O comando E2E prepara `app-test` em `127.0.0.1:8082`, usando `economizou_test` no MariaDB separado, e exporta o frontend apontando somente para essa API. Não cadastra usuários de teste no banco da aplicação. A ampliação de limites no servidor HTTP de teste só é aceita em `ENVIRONMENT=testing`; o limite real é testado pelo PHPUnit no serviço `app`. Não rode PHPUnit em paralelo ao E2E, pois o PHPUnit recria as tabelas do banco de teste. Nenhum volume de desenvolvimento é removido.
 
 Referências: [Access Tokens do Shield](https://github.com/codeigniter4/shield/blob/v1.4.1/docs/guides/api_tokens.md), [SecureStore SDK 58](https://docs.expo.dev/versions/v58.0.0/sdk/securestore/).
+
+
+## Cadastro e personalização — 13/11/2026
+
+Depois de cadastrar e validar a sessão, novos usuários veem “Vamos personalizar seu Economizou?”. Podem continuar com todos os campos vazios ou pular, seguindo para o onboarding existente quando necessário. Contas anteriores não são obrigadas a passar pelo novo fluxo. Não foi implementado login Google/Microsoft.
+
+`GET /api/auth/me` retorna também:
+
+```json
+{
+  "user": {
+    "personalization": {
+      "birth_date": null,
+      "financial_objective": null,
+      "monthly_income_cents": null,
+      "completed": false
+    }
+  }
+}
+```
+
+Esse trecho mostra apenas os novos campos; os campos de usuário e `expires_at` anteriores continuam presentes. Cadastro e login usam o mesmo DTO.
+
+`PATCH /api/auth/profile` agora aceita atualizações parciais de `name`, `avatar` e dos novos campos. Exemplo autenticado:
+
+```json
+{
+  "birth_date": "2000-02-29",
+  "financial_objective": "achievement",
+  "monthly_income_cents": 520000,
+  "personalization_completed": true
+}
+```
+
+Nascimento deve ser uma data civil válida entre 1900 e hoje. Nenhuma idade é calculada ou utilizada em recomendações. Objetivos aceitos: `organize`, `save`, `debt_free`, `achievement`. Renda deve ser um inteiro JSON em centavos, entre zero e 9007199254740991; strings/decimais/valores negativos são rejeitados. `null` remove nascimento, objetivo ou renda. Campos omitidos são preservados. Campos desconhecidos, inclusive `user_id`, são rejeitados; o dono é obtido do token e o Model aplica escopo.
+
+A nova migration `2026-11-13-000004_AddProfilePersonalization` acrescenta esses campos à tabela existente `user_preferences`, sem recriar `users` ou alterar migrations anteriores. Preferências anteriores recebem conclusão padrão; somente o cadastro novo grava `personalization_completed = 0`. Reversão foi testada apenas no banco isolado pela suíte de migrations.
+
+Editar Perfil permite consultar, alterar ou remover as informações depois. A renda não cria uma Transação nem altera os totais financeiros. Os campos ficam preparados para planejamento e sugestões futuras, sem recomendações automáticas nesta etapa.
+
+O indicador de força no cadastro é orientativo. O backend continua exigindo no mínimo oito caracteres, limite de 72 bytes, confirmação igual e aprovação pelo serviço oficial de senhas do Shield.
+
+Ao pular normalmente, o app persiste apenas a conclusão na API. Se houver falha de rede/servidor, o app permite seguir naquela sessão sem fingir que os dados foram salvos no backend; numa próxima abertura a personalização poderá ser oferecida novamente. Falhas de autenticação continuam exigindo login.
+
+## Reutilização da autenticação em categorias
+
+Os endpoints de categorias usam os mesmos filtros `api-token`/`api-request`, Bearer mobile e cookie HttpOnly/CSRF web. `X-Account-ID` vincula a solicitação à conta esperada: apenas confirma o ID autenticado, nunca seleciona o dono. CORS permite esse header e DELETE para as origens já autorizadas. Nenhum token novo ou autenticação personalizada foi introduzido. Consulte [categories.md](categories.md).

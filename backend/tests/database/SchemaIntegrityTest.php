@@ -28,7 +28,7 @@ class SchemaIntegrityTest extends CIUnitTestCase
             $this->assertSame(1, (int) $ownerKey['total']);
         }
         $columns = $this->db->query("SELECT TABLE_NAME, COLUMN_NAME, DATA_TYPE FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND COLUMN_NAME LIKE '%\\_cents'")->getResultArray();
-        $this->assertCount(4, $columns);
+        $this->assertCount(5, $columns);
         foreach ($columns as $column) {
             $this->assertSame('bigint', $column['DATA_TYPE']);
         }

@@ -11,7 +11,7 @@ export function createMockData(now = new Date()): FinanceData {
     preferences: { hideAmounts: false, notificationsEnabled: true, animationsEnabled: true },
     categories: [
       { id: 'salary', name: 'Salário', type: 'income' },
-      { id: 'extra', name: 'Renda extra', type: 'income' },
+      { id: 'extra', name: 'Renda Extra', type: 'income' },
       { id: 'food', name: 'Alimentação', type: 'expense' },
       { id: 'home', name: 'Moradia', type: 'expense' },
       { id: 'transport', name: 'Transporte', type: 'expense' },
@@ -31,7 +31,7 @@ export function createMockData(now = new Date()): FinanceData {
       { id: 'rec-reserve', title: 'Defina uma reserva mensal', description: 'Escolha um valor que caiba no orçamento e acompanhe manualmente sua reserva em uma meta.', status: 'pending' },
       { id: 'rec-subscriptions', title: 'Revise suas assinaturas', description: 'Liste serviços recorrentes e avalie quais ainda fazem sentido para você.', status: 'pending' },
     ],
-    notifications: [{ id: 'welcome-notification', title: 'Boas-vindas ao Econimizou!', body: 'Seus dados iniciais são fictícios. Comece registrando uma transação ou criando uma meta.', date, read: false }],
+    notifications: [{ id: 'welcome-notification', title: 'Boas-vindas ao Econimizou!', body: 'Seus dados iniciais são fictícios. Comece registrando uma Transação ou criando uma meta.', date, read: false }],
     goals: [{ id: 'mock-emergency', name: 'Reserva de emergência', targetCents: 1500000, savedCents: 250000 }],
   };
 }

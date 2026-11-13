@@ -60,7 +60,7 @@ function Message({ message }: { message: ChatMessage }) {
       <Text style={styles.proposalAmount}>{data.preferences.hideAmounts ? '••••••' : formatMoney(proposal.amountCents)}</Text>
       <Text style={ui.text}>{category?.name ?? 'Categoria removida'} · {displayDate(proposal.date)}</Text>
       {message.status === 'pending' ? <>
-        <Text style={ui.text}>Confirma o registro desta transação?</Text>
+        <Text style={ui.text}>Confirma o registro desta Transação?</Text>
         <Button label="Confirmar registro" icon="checkmark" loading={task.busy} onPress={() => { void task.run(() => resolveProposal(message.id, true)); }} />
         <Button label="Cancelar registro" secondary disabled={task.busy} onPress={() => { void task.run(() => resolveProposal(message.id, false)); }} />
       </> : <Text style={message.status === 'confirmed' ? ui.success : ui.text}>{message.status === 'confirmed' ? '✓ Registro confirmado' : 'Registro cancelado'}</Text>}

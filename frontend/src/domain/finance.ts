@@ -1,6 +1,10 @@
+import { isCivilDate } from './civil-date.ts';
+import { validateCommitments, type Commitment, type CommitmentRecurrence } from './commitments.ts';
 import type { ChatMessage, Notification, Recommendation } from './features.ts';
+import { validPhotoRef } from './profile-photo.ts';
+export { isCivilDate };
 export type TransactionType = 'income' | 'expense';
-export type Category = { id: string; name: string; type: TransactionType };
+export type Category = { id: string; name: string; type: TransactionType; remoteId?: string; archived?: boolean };
 export type TransactionInput = {
   description: string;
   amountCents: number;
@@ -8,13 +12,32 @@ export type TransactionInput = {
   categoryId: string;
   date: string; // Data civil local, YYYY-MM-DD; sem conversão para UTC.
 };
-export type Transaction = TransactionInput & { id: string };
+export type Transaction = TransactionInput & { id: string; commitmentId?: string };
 export type Goal = { id: string; name: string; targetCents: number; savedCents: number };
+/** Fonte de renda para planejamento (armazenada nas preferências locais). */
+export type IncomeSource = {
+  id: string;
+  label: string;
+  amountCents: number;
+  dayOfMonth: number | null;
+};
+
 export type FinanceData = {
   version: 2;
+  financeResetKey?: string;
+  financeRevision?: number;
+  commitments?: Commitment[];
+  commitmentRecurrences?: CommitmentRecurrence[];
   onboarding?: { completed: boolean };
-  profile: { name: string; avatar: string };
-  preferences: { hideAmounts: boolean; notificationsEnabled: boolean; animationsEnabled: boolean };
+  profile: { name: string; avatar: string; photoRef?: string | null };
+  preferences: {
+    hideAmounts: boolean;
+    notificationsEnabled: boolean;
+    animationsEnabled: boolean;
+    incomeDay?: number | null;
+    /** Fontes de renda múltiplas para planejamento. Substituem incomeDay quando presentes. */
+    incomeSources?: IncomeSource[];
+  };
   categories: Category[];
   transactions: Transaction[];
   goals: Goal[];
@@ -27,13 +50,6 @@ export function localDate(date = new Date()): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 }
 
-export function isCivilDate(value: unknown): value is string {
-  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
-  const [year, month, day] = value.split('-').map(Number);
-  const date = new Date(0);
-  date.setFullYear(year, month - 1, day);
-  return year >= 1900 && date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day;
-}
 
 function amount(value: unknown): value is number {
   return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0;
@@ -69,11 +85,32 @@ export function validateFinanceData(value: unknown): asserts value is FinanceDat
     !Array.isArray(value.categories) || !Array.isArray(value.transactions) || !Array.isArray(value.goals) || !Array.isArray(value.chatMessages) || !Array.isArray(value.recommendations) || !Array.isArray(value.notifications)) {
     throw new Error('Dados locais inválidos ou versão não suportada.');
   }
+  if (value.preferences.incomeDay !== undefined && value.preferences.incomeDay !== null && (!Number.isInteger(value.preferences.incomeDay) || (value.preferences.incomeDay as number) < 1 || (value.preferences.incomeDay as number) > 31)) {
+    throw new Error('Dia de recebimento inválido.');
+  }
+  // Valida fontes de renda múltiplas (campo opcional; retrocompatível).
+  if (value.preferences.incomeSources !== undefined) {
+    if (!Array.isArray(value.preferences.incomeSources)) throw new Error('Fontes de renda inválidas.');
+    for (const src of value.preferences.incomeSources as unknown[]) {
+      if (!record(src) || !text(src.id) || !text(src.label) || !amount(src.amountCents) || src.amountCents === 0) {
+        throw new Error('Fonte de renda inválida: campos obrigatórios ausentes ou inválidos.');
+      }
+      if (src.dayOfMonth !== null && src.dayOfMonth !== undefined && (!Number.isInteger(src.dayOfMonth) || (src.dayOfMonth as number) < 1 || (src.dayOfMonth as number) > 31)) {
+        throw new Error('Dia de recebimento da fonte de renda inválido.');
+      }
+    }
+    const sourceIds = (value.preferences.incomeSources as IncomeSource[]).map((s) => s.id);
+    if (new Set(sourceIds).size !== sourceIds.length) throw new Error('Fontes de renda com IDs duplicados.');
+  }
+  if (value.profile.photoRef != null && !validPhotoRef(value.profile.photoRef)) throw new Error('Referência local da foto inválida.');
   if (value.onboarding !== undefined && (!record(value.onboarding) || typeof value.onboarding.completed !== 'boolean')) throw new Error('Preferência de apresentação inválida.');
   for (const category of value.categories) {
     if (!record(category) || !text(category.id) || !text(category.name) || !type(category.type)) throw new Error('Categoria inválida.');
   }
   const categories = value.categories as Category[];
+  if (categories.some(c => (c.remoteId !== undefined && (typeof c.remoteId !== 'string' || !/^\d+$/.test(c.remoteId))) || (c.archived !== undefined && typeof c.archived !== 'boolean'))) throw new Error('Metadados de categoria inválidos.');
+  const remoteIds = categories.flatMap(c => c.remoteId ? [c.remoteId] : []);
+  if (new Set(remoteIds).size !== remoteIds.length) throw new Error('Categorias remotas duplicadas.');
   for (const transaction of value.transactions) validateTransaction(transaction, categories);
   for (const goal of value.goals) {
     validateGoal(goal);
@@ -110,6 +147,7 @@ export function validateFinanceData(value: unknown): asserts value is FinanceDat
     if (!record(notification) || !text(notification.id) || !text(notification.title) || !text(notification.body) || !isCivilDate(notification.date) || typeof notification.read !== 'boolean') throw new Error('Notificação inválida.');
   }
   if (![value.chatMessages, value.recommendations, value.notifications].every((items) => uniqueIds(items as { id: string }[]))) throw new Error('Identificadores duplicados.');
+  validateCommitments(value as FinanceData);
   // Impede estouro de precisão também nos totais agregados.
   summarize(value.transactions as Transaction[], '2000-01');
 }
@@ -134,4 +172,14 @@ export function summarize(transactions: Transaction[], month: string) {
 
 export function formatMoney(cents: number) {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(cents / 100);
+}
+
+/** Soma os centavos de todas as fontes de renda. Retorna 0 para lista vazia. */
+export function totalIncomeSources(sources: IncomeSource[]): number {
+  return sources.reduce((sum, s) => sum + s.amountCents, 0);
+}
+
+/** Gera um ID único simples para uma nova fonte de renda. */
+export function newIncomeSourceId(): string {
+  return `src-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
 }

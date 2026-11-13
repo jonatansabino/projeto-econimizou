@@ -151,4 +151,57 @@ class AuthApiTest extends CIUnitTestCase
         $this->requestJson('POST', '/api/auth/register', $this->credentials())->assertStatus(403);
         $this->assertSame(0, $this->db->table('users')->countAllResults());
     }
+    public function testPersonalizationIsOptionalPersistentAndScopedToCurrentUser(): void
+    {
+        $first = $this->registerUser();
+        $this->assertFalse($first['user']['personalization']['completed']);
+        $this->assertNull($first['user']['personalization']['monthly_income_cents']);
+        $headers = ['Authorization' => 'Bearer ' . $first['access_token']];
+        $second = json_decode($this->requestJson('POST', '/api/auth/register', array_replace($this->credentials(), ['email' => 'other@example.test']))->getJSON(), true);
+        $patch = ['birth_date' => '2000-02-29', 'financial_objective' => 'achievement', 'monthly_income_cents' => 520000, 'personalization_completed' => true];
+        $saved = $this->requestJson('PATCH', '/api/auth/profile', $patch, $headers);
+        $saved->assertStatus(200);
+        $profile = json_decode($saved->getJSON(), true)['user']['personalization'];
+        $this->assertSame('2000-02-29', $profile['birth_date']);
+        $this->assertSame(520000, $profile['monthly_income_cents']);
+        $this->assertTrue($profile['completed']);
+        $other = $this->requestJson('GET', '/api/auth/me', [], ['Authorization' => 'Bearer ' . $second['access_token']]);
+        $this->assertNull(json_decode($other->getJSON(), true)['user']['personalization']['birth_date']);
+        $this->requestJson('PATCH', '/api/auth/profile', ['user_id' => $second['user']['id'], 'monthly_income_cents' => 1], $headers)->assertStatus(422);
+        $again = $this->requestJson('GET', '/api/auth/me', [], $headers);
+        $this->assertSame($profile, json_decode($again->getJSON(), true)['user']['personalization']);
+        $clear = $this->requestJson('PATCH', '/api/auth/profile', ['birth_date' => null, 'financial_objective' => null, 'monthly_income_cents' => null], $headers);
+        $clear->assertStatus(200);
+        $this->assertNull(json_decode($clear->getJSON(), true)['user']['personalization']['monthly_income_cents']);
+        $this->assertSame(0, $this->db->table('transactions')->countAllResults());
+    }
+
+    public function testInvalidPersonalizationCannotReplaceSavedData(): void
+    {
+        $data = $this->registerUser();
+        $headers = ['Authorization' => 'Bearer ' . $data['access_token']];
+        foreach ([['birth_date' => "2000-01-01\0"], ['birth_date' => '2001-02-29'], ['birth_date' => date('Y-m-d', strtotime('+1 day'))], ['birth_date' => ['2000-01-01']], ['financial_objective' => 'unknown'], ['monthly_income_cents' => -1], ['monthly_income_cents' => 1.5], ['monthly_income_cents' => '520000'], ['monthly_income_cents' => 9007199254740992], ['personalization_completed' => 'yes']] as $invalid) {
+            $result = $this->requestJson('PATCH', '/api/auth/profile', $invalid, $headers);
+            $result->assertStatus(422);
+            $this->assertNotEmpty(json_decode($result->getJSON(), true)['errors']);
+        }
+        $this->requestJson('PATCH', '/api/auth/profile', ['personalization_completed' => true], $headers)->assertStatus(200);
+        $me = $this->requestJson('GET', '/api/auth/me', [], $headers);
+        $this->assertTrue(json_decode($me->getJSON(), true)['user']['personalization']['completed']);
+        $this->assertNull(json_decode($me->getJSON(), true)['user']['personalization']['birth_date']);
+    }
+
+    public function testLegacyPreferencesDefaultToCompletedAndShieldRejectsCommonPassword(): void
+    {
+        $weak = array_replace($this->credentials(), ['password' => '12345678', 'password_confirmation' => '12345678']);
+        $this->requestJson('POST', '/api/auth/register', $weak)->assertStatus(422);
+        $this->assertSame(0, $this->db->table('users')->countAllResults());
+        $users = new UserModel();
+        $users->save(new \CodeIgniter\Shield\Entities\User(['email' => 'legacy@example.test', 'password' => 'RioVerde!7824#', 'active' => 1]));
+        $id = $users->getInsertID();
+        $this->db->table('user_preferences')->insert(['user_id' => $id, 'display_name' => 'Perfil antigo', 'avatar' => 'dicebear:adventurer:1']);
+        $row = $this->db->table('user_preferences')->where('user_id', $id)->get()->getRowArray();
+        $this->assertSame(1, (int) $row['personalization_completed']);
+    }
+
 }

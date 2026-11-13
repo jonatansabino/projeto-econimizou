@@ -1,5 +1,5 @@
-import { existingUser } from './existing-user';
 import { expect, test, type Page } from '@playwright/test';
+import { existingUser } from './existing-user';
 
 const button = (page: Page, name: string) => page.getByRole('button', { name, exact: true });
 const field = (page: Page, name: string) => page.getByRole('textbox', { name, exact: true });
@@ -20,7 +20,7 @@ test('Home, sino, atalhos, navegação e layout responsivo', async ({ page }, te
   const errors: string[] = []; page.on('pageerror', (error) => errors.push(error.message));
   await home(page);
   await expect(page.getByLabel('Saldo total: R$ 3.350,50', { exact: true })).toBeVisible();
-  await button(page, 'Notificações não lidas').click();
+  await button(page, 'Notificações Não lidas').click();
   await expect(page.getByText('Boas-vindas ao Econimizou!', { exact: true })).toBeVisible();
   await button(page, 'Marcar todas como lidas').click();
   await button(page, 'Voltar').click();
@@ -34,8 +34,8 @@ test('Home, sino, atalhos, navegação e layout responsivo', async ({ page }, te
   await expect(page.getByRole('heading', { name: 'Cada sonho, um plano.' })).toBeVisible();
   await tab(page, 'Início');
   await button(page, 'Categoria: Alimentação').click();
-  await expect(button(page, 'Editar transação: Almoço')).toBeVisible();
-  await expect(button(page, 'Editar transação: Salário do mês')).toHaveCount(0);
+  await expect(button(page, 'Editar Transação: Almoço')).toBeVisible();
+  await expect(button(page, 'Editar Transação: Salário do mês')).toHaveCount(0);
   await button(page, 'Categoria: Todas').click();
   await page.screenshot({ path: `test-results/home-${testInfo.project.name}.png`, fullPage: true });
   const fits = await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth);
@@ -51,39 +51,39 @@ test('transações: validação, cadastro, filtros, edição, exclusão e persis
   await field(page, 'Descrição').fill('Curso de teste');
   await field(page, 'Valor (R$)').fill('12,50');
   await field(page, 'Data (DD/MM/AAAA)').fill('31/02/2026');
-  await button(page, 'Salvar transação').click();
+  await button(page, 'Salvar Transação').click();
   await expect(page.getByRole('alert')).toContainText('data válida');
   const today = new Date();
   const date = `${String(today.getDate()).padStart(2, '0')}/${String(today.getMonth() + 1).padStart(2, '0')}/${today.getFullYear()}`;
   await field(page, 'Data (DD/MM/AAAA)').fill(date);
-  await button(page, 'Salvar transação').click(); await button(page, 'Concluir').click();
-  await expect(button(page, 'Editar transação: Curso de teste')).toBeVisible();
+  await button(page, 'Salvar Transação').click(); await button(page, 'Concluir').click();
+  await expect(button(page, 'Editar Transação: Curso de teste')).toBeVisible();
   await expect(page.getByLabel('Saldo total: R$ 3.338,00', { exact: true })).toBeVisible();
   await tab(page, 'Extrato');
   await field(page, 'Pesquisar transações').fill('curso');
-  await expect(button(page, 'Editar transação: Curso de teste')).toBeVisible();
+  await expect(button(page, 'Editar Transação: Curso de teste')).toBeVisible();
   await button(page, 'Tipo: Receitas').click();
-  await expect(page.getByText('Nenhuma transação encontrada. Registre um movimento ou ajuste os filtros.')).toBeVisible();
+  await expect(page.getByText('Nenhuma Transação encontrada. Registre um movimento ou ajuste os filtros.')).toBeVisible();
   await button(page, 'Limpar filtros').click();
   await button(page, 'Período: Personalizado').click();
   await field(page, 'Data inicial').fill(date); await field(page, 'Data final').fill(date);
   await button(page, 'Aplicar período').click();
   await field(page, 'Pesquisar transações').fill('curso');
-  await button(page, 'Editar transação: Curso de teste').click();
+  await button(page, 'Editar Transação: Curso de teste').click();
   await field(page, 'Descrição').fill('Curso editado');
   await field(page, 'Valor (R$)').fill('20,00');
   await button(page, 'Salvar alterações').click(); await button(page, 'Concluir').click();
-  await expect(button(page, 'Editar transação: Curso editado')).toBeVisible();
+  await expect(button(page, 'Editar Transação: Curso editado')).toBeVisible();
   await page.reload();
   await field(page, 'Pesquisar transações').fill('curso');
-  await expect(button(page, 'Editar transação: Curso editado')).toBeVisible();
+  await expect(button(page, 'Editar Transação: Curso editado')).toBeVisible();
   const reopened = await context.newPage(); await reopened.goto('/');
   await expect(reopened.getByLabel('Saldo total: R$ 3.330,50', { exact: true })).toBeVisible(); await reopened.close();
-  await button(page, 'Editar transação: Curso editado').click();
-  await button(page, 'Excluir transação').click(); await button(page, 'Cancelar exclusão').click();
+  await button(page, 'Editar Transação: Curso editado').click();
+  await button(page, 'Excluir Transação').click(); await button(page, 'Cancelar exclusão').click();
   await expect(field(page, 'Descrição')).toHaveValue('Curso editado');
-  await button(page, 'Excluir transação').click(); await button(page, 'Excluir definitivamente').click();
-  await expect(page.getByText('Nenhuma transação encontrada. Registre um movimento ou ajuste os filtros.')).toBeVisible();
+  await button(page, 'Excluir Transação').click(); await button(page, 'Excluir definitivamente').click();
+  await expect(page.getByText('Nenhuma Transação encontrada. Registre um movimento ou ajuste os filtros.')).toBeVisible();
   await tab(page, 'Início');
   await expect(page.getByLabel('Saldo total: R$ 3.350,50', { exact: true })).toBeVisible();
 });
@@ -100,7 +100,7 @@ test('chat: confirmação obrigatória, cancelamento e atualização de Home e E
   await tab(page, 'Início');
   await expect(page.getByLabel('Saldo total: R$ 3.305,50', { exact: true })).toBeVisible();
   await tab(page, 'Extrato'); await field(page, 'Pesquisar transações').fill('almoço');
-  await expect(button(page, 'Editar transação: almoço')).toBeVisible();
+  await expect(button(page, 'Editar Transação: almoço')).toBeVisible();
   await tab(page, 'Chat IA');
   await field(page, 'Mensagem para o assistente').fill('Recebi R$ 100 de teste'); await button(page, 'Enviar mensagem').click();
   await button(page, 'Cancelar registro').click(); await expect(page.getByText('Registro cancelado')).toBeVisible();
@@ -109,7 +109,7 @@ test('chat: confirmação obrigatória, cancelamento e atualização de Home e E
 });
 
 test('metas: criar, editar, progresso, aceitar/ignorar sugestões e restaurar após recarga', async ({ page }) => {
-  await home(page); await tab(page, 'Metas'); await button(page, 'Nova meta').click();
+  await home(page); await tab(page, 'Metas'); await button(page, 'Nova Meta').click();
   await field(page, 'Nome da meta').fill('Viagem de teste'); await field(page, 'Valor desejado (R$)').fill('1000,00'); await field(page, 'Já guardado (R$)').fill('250,00');
   await button(page, 'Salvar meta').click();
   await expect(page.getByRole('progressbar', { name: 'Progresso de Viagem de teste' })).toHaveAttribute('aria-valuenow', '25');
@@ -123,9 +123,9 @@ test('metas: criar, editar, progresso, aceitar/ignorar sugestões e restaurar ap
 });
 
 test('configurações: perfil, categorias, preferências, central e privacidade', async ({ page }) => {
-  await home(page); await tab(page, 'Ajustes'); await button(page, 'Editar perfil').click();
-  await field(page, 'Seu nome').fill('João'); await button(page, 'Escolher avatar Brisa').click(); await button(page, 'Salvar perfil').click();
-  await button(page, 'Gerenciar categorias').click(); await button(page, 'Nova categoria').click(); await field(page, 'Nome da categoria').fill('Educação'); await button(page, 'Salvar categoria').click();
+  await home(page); await tab(page, 'Ajustes'); await button(page, 'Editar Perfil').click();
+  await field(page, 'Seu nome').fill('João'); await button(page, 'Alterar foto de perfil').click(); await button(page, 'Escolher avatar').click(); await button(page, 'Escolher avatar Brisa').click(); await button(page, 'Usar avatar').click(); await button(page, 'Salvar perfil').click();
+  await button(page, 'Categorias').click(); await button(page, 'Nova Categoria').click(); await field(page, 'Nome da categoria').fill('Educação'); await button(page, 'Salvar categoria').click();
   await button(page, 'Editar categoria: Educação').click(); await field(page, 'Nome da categoria').fill('Cursos'); await button(page, 'Salvar categoria').click();
   await button(page, 'Excluir categoria: Cursos').click(); await button(page, 'Excluir definitivamente').click(); await expect(button(page, 'Editar categoria: Cursos')).toHaveCount(0);
   await button(page, 'Excluir categoria: Alimentação').click(); await button(page, 'Excluir definitivamente').click(); await expect(page.getByRole('alert')).toContainText('em uso'); await button(page, 'Cancelar exclusão').click();
@@ -133,7 +133,7 @@ test('configurações: perfil, categorias, preferências, central e privacidade'
   await page.getByRole('switch', { name: 'Ocultar valores', exact: true }).click();
   await page.getByRole('switch', { name: 'Animações suaves', exact: true }).click();
   await page.getByRole('switch', { name: 'Notificações simuladas', exact: true }).click();
-  await button(page, 'Segurança e privacidade').click(); await expect(page.getByText('Sessão protegida', { exact: true })).toBeVisible(); await button(page, 'Voltar').click();
+  await button(page, 'Segurança e Privacidade').click(); await expect(page.getByText('Sessão protegida', { exact: true })).toBeVisible(); await button(page, 'Voltar').click();
   await tab(page, 'Início'); await expect(page.getByText('Olá, João 👋')).toBeVisible(); await expect(button(page, 'Mostrar valores')).toBeVisible();
   await page.reload(); await expect(page.getByText('Olá, João 👋')).toBeVisible(); await expect(button(page, 'Mostrar valores')).toBeVisible();
   await button(page, 'Mostrar valores').click(); await expect(page.getByLabel('Saldo total: R$ 3.350,50', { exact: true })).toBeVisible();
@@ -143,13 +143,13 @@ test('configurações: perfil, categorias, preferências, central e privacidade'
 
 
 test('receita: tipo, categoria, atualização do saldo e relatório', async ({ page }) => {
-  await home(page); await tab(page, 'Extrato'); await button(page, 'Nova transação').click();
-  await button(page, 'Tipo da transação: Receita').click();
+  await home(page); await tab(page, 'Extrato'); await button(page, 'Nova Transação').click();
+  await button(page, 'Tipo da Transação: Receita').click();
   await field(page, 'Descrição').fill('Bônus de teste'); await field(page, 'Valor (R$)').fill('200,00');
-  await button(page, 'Categoria da transação: Renda extra').click(); await button(page, 'Salvar transação').click(); await button(page, 'Concluir').click();
-  await button(page, 'Tipo: Receitas').click(); await button(page, 'Categoria: Renda extra').click();
-  await expect(button(page, 'Editar transação: Bônus de teste')).toBeVisible();
-  await expect(button(page, 'Editar transação: Salário do mês')).toHaveCount(0);
+  await button(page, 'Categoria Da Transação: Renda Extra').click(); await button(page, 'Salvar Transação').click(); await button(page, 'Concluir').click();
+  await button(page, 'Tipo: Receitas').click(); await button(page, 'Categoria: Renda Extra').click();
+  await expect(button(page, 'Editar Transação: Bônus de teste')).toBeVisible();
+  await expect(button(page, 'Editar Transação: Salário do mês')).toHaveCount(0);
   await tab(page, 'Início'); await expect(page.getByLabel('Saldo total: R$ 3.550,50', { exact: true })).toBeVisible();
   await button(page, 'Relatórios').click(); await expect(page.getByText('Receitas: R$ 5.400,00', { exact: true })).toBeVisible();
 });
@@ -171,5 +171,5 @@ test('virada de mês atualiza totais e filtros sem alterar saldo histórico', as
   await expect(page.getByText('R$ 0,00', { exact: true })).toHaveCount(2);
   await expect(page.getByLabel('Saldo total: R$ 3.350,50', { exact: true })).toBeVisible();
   await tab(page, 'Extrato');
-  await expect(page.getByText('Nenhuma transação encontrada. Registre um movimento ou ajuste os filtros.')).toBeVisible();
+  await expect(page.getByText('Nenhuma Transação encontrada. Registre um movimento ou ajuste os filtros.')).toBeVisible();
 });

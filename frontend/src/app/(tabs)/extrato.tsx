@@ -4,13 +4,14 @@ import { Text, View } from 'react-native';
 
 import { Screen } from '@/components/screen';
 import { TransactionList } from '@/components/transaction-list';
-import { Button, Chips, ErrorText, Field, ui } from '@/components/ui';
+import { Button, Chips, ErrorText, Field, ui, useTask } from '@/components/ui';
 import { filterTransactions, parseDate, periodRange, transactionTotals } from '@/domain/features';
 import { formatMoney } from '@/domain/finance';
 import { useFinance } from '@/state/finance-context';
 
 export default function StatementScreen() {
-  const { data } = useFinance();
+  const { data, refreshBank, categoryError } = useFinance();
+  const bankTask = useTask();
   const [query, setQuery] = useState('');
   const [period, setPeriod] = useState('month');
   const [type, setType] = useState('all');
@@ -31,7 +32,8 @@ export default function StatementScreen() {
     } catch (cause) { setError((cause as Error).message); }
   }
   return <Screen title="Extrato" description="Cada entrada e saída, no seu lugar.">
-    <Button label="Nova transação" icon="add" onPress={() => router.push('/transacao')} />
+    <Button label="Atualizar Extrato do banco" secondary loading={bankTask.busy} onPress={() => { if (!bankTask.busy) void bankTask.run(refreshBank); }} /><ErrorText error={categoryError ?? bankTask.error} />
+    <Button label="Nova Transação" icon="add" onPress={() => router.push('/transacao')} />
     <Field label="Pesquisar transações" placeholder="Ex.: almoço, salário…" value={query} onChangeText={setQuery} />
     <Chips label="Período" value={period} onChange={(value) => { setPeriod(value); setError(null); }} options={[{ label: 'Este mês', value: 'month' }, { label: '7 dias', value: 'week' }, { label: 'Mês anterior', value: 'lastMonth' }, { label: 'Tudo', value: 'all' }, { label: 'Personalizado', value: 'custom' }]} />
     {period === 'custom' && <View style={ui.card}>
@@ -44,7 +46,7 @@ export default function StatementScreen() {
     <Chips label="Categoria" value={categoryId} onChange={setCategory} options={[{ label: 'Todas', value: '' }, ...data.categories.filter((item) => type === 'all' || item.type === type).map((item) => ({ label: item.name, value: item.id }))]} />
     <Button label="Limpar filtros" secondary onPress={reset} />
     <View style={ui.card}><Text style={ui.label}>Resultado dos filtros · {transactions.length} transações</Text><Text style={ui.text}>Receitas: {money(income)}{ '\n' }Despesas: {money(expense)}{ '\n' }Resultado: {money(income - expense)}</Text></View>
-    <Text style={ui.text}>Toque em uma transação para editar ou excluir.</Text>
+    <Text style={ui.text}>Toque em uma Transação para editar ou excluir.</Text>
     <TransactionList transactions={transactions.slice(0, limit)} />
     {transactions.length > limit && <Button label="Carregar mais transações" secondary onPress={() => setLimit(limit + 30)} />}
   </Screen>;

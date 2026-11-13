@@ -44,7 +44,7 @@ test('assistente interpreta despesas e receitas e não propõe valores inválido
   assert.match(interpretCommand('saldo', data.categories, data.transactions, now).text, /3.350,50/);
 });
 
-test('chat exige confirmação, grava uma só vez e persiste mensagens e transação atomicamente', async () => {
+test('chat exige confirmação, grava uma só vez e persiste mensagens e Transação atomicamente', async () => {
   const { store, repository, read } = fixture(); await store.initialize();
   await store.sendMessage('Gastei R$ 45 no almoço');
   assert.equal(store.getSnapshot().data.transactions.length, 5);

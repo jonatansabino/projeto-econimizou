@@ -107,3 +107,20 @@ Para parar somente o banco de teste: `docker compose -f docker-compose.yml -f do
 Referências: [instalação CodeIgniter](https://codeigniter4.github.io/userguide/installation/installing_composer.html), [migrations](https://codeigniter4.github.io/userguide/dbmgmt/migration.html), [ordem de início no Compose](https://docs.docker.com/compose/how-tos/startup-order/).
 
 Consulte [autenticação REST, sessão mobile/web e configuração](docs/auth.md).
+
+## Categorias por usuário
+
+A API oferece GET/POST `/api/categories` e PATCH/DELETE `/api/categories/{id}`, protegidos pelo Shield. A migration complementar `2026-11-13-000005_AddCategorySynchronization` adiciona chave idempotente do cliente e exclusão lógica à tabela existente, sem recriar registros. Execute as migrations normalmente pelo launcher ou `docker compose exec -T app php spark migrate --all`.
+
+Contrato, isolamento entre contas, CSRF, comportamento de importação e cache: [docs/categories.md](docs/categories.md). Receitas e despesas utilizam a API financeira descrita abaixo. Metas e previsões permanecem locais.
+
+
+## Entradas e saídas — base principal no MariaDB
+
+GET `/api/finance` retorna os registros do usuário, categorias, `resetKey` e `revision`. POST `/api/finance/transactions` aceita `reset_key`, `revision`, `operation_id` e uma lista `changes` de até 100 alterações. Cada alteração é `put` com `client_key`, `category_id`, `type`, `description`, `amount_cents`, `transaction_date`, ou `delete` com `client_key`. O usuário vem exclusivamente do Shield. Tipos são income/expense; valores são centavos inteiros positivos. Cada lote é transacional, com revisão e identificador de operação; chaves de cliente são únicas por usuário.
+
+O cliente consulta o snapshot antes de gravar. Mutações de categorias também exigem `X-Finance-Reset` igual à chave atual, além da sessão e do CSRF Web. Chaves de bases anteriores são recusadas para evitar restaurar caches apagados. Os comandos de receitas/despesas, Chat e confirmações de contas usam essa gravação. Não há importação de registros antigos.
+
+A migration aditiva `2026-11-13-000006_AddFinancialSynchronization` adiciona `transactions.client_key` e `financial_state`, sem modificar migrations anteriores.
+
+Para uma limpeza administrativa de registros financeiros de todas as contas: `docker compose exec -T app php spark finance:reset --all-users --confirm`. Esse comando apaga os registros financeiros operacionais, gira as chaves de cache e preserva usuários, credenciais e perfis. Não é uma etapa automática de inicialização. Clientes conectados descartam seus caches financeiros antigos ao consultar a nova base.

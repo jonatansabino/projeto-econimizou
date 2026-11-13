@@ -39,6 +39,13 @@ export function IconButton({ label, icon, onPress, badge }: { label: string; ico
     {badge && <View style={styles.dot} />}
   </Pressable>;
 }
+export function PasswordToggle({ visible, onPress, confirmation = false }: { visible: boolean; onPress: () => void; confirmation?: boolean }) {
+  const label = confirmation ? 'confirmação de senha' : 'senha';
+  return <Pressable accessibilityRole="button" accessibilityLabel={`${visible ? 'Ocultar' : 'Mostrar'} ${label}`} onPress={onPress}
+    style={({ pressed }) => ({ width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 11, backgroundColor: pressed ? colors.surface : 'transparent' })}>
+    <Ionicons name={visible ? 'eye-off-outline' : 'eye-outline'} size={22} color={colors.primary} />
+  </Pressable>;
+}
 export function Field({ label, error, trailingAccessory, ref: forwardedRef, ...props }: Omit<ComponentProps<typeof TextInput>, 'ref'> & { label: string; error?: string; trailingAccessory?: ReactNode; ref?: Ref<InputHandle> }) {
   const input = useRef<InputHandle | null>(null);
   const reveal = useRevealField();

@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { calendarDays, maskMoney, validateDraft } from '../src/domain/transaction-form.ts';
-import { parseMoney } from '../src/domain/features.ts';
 import { createMockData } from '../src/data/mock-data.ts';
+import { parseMoney } from '../src/domain/features.ts';
+import { calendarDays, maskMoney, validateDraft } from '../src/domain/transaction-form.ts';
 
 test('máscara brasileira preserva centavos, milhares e apagar conteúdo', () => {
   assert.equal(maskMoney('1'), 'R$ 0,01');
@@ -12,7 +12,7 @@ test('máscara brasileira preserva centavos, milhares e apagar conteúdo', () =>
   assert.equal(maskMoney(''), '');
   assert.equal(parseMoney(maskMoney(String(Number.MAX_SAFE_INTEGER))), Number.MAX_SAFE_INTEGER);
 });
-test('validação individual não produz transação parcial e exige categoria compatível', () => {
+test('validação individual não produz Transação parcial e exige categoria compatível', () => {
   const categories = createMockData().categories;
   const draft = { type: 'expense', description: '', value: '', date: '31/02/2026', categoryId: 'salary' };
   const invalid = validateDraft(draft, categories);

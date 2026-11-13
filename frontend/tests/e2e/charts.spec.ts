@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { existingUser } from './existing-user';
+import { existingUser, seedBank } from './existing-user';
 import { createMockData } from '../../src/data/mock-data';
 
 test.beforeEach(async ({ page }) => existingUser(page));
@@ -48,7 +48,7 @@ test('etapa 17: histórico entre anos, saldo negativo e estados vazios', async (
     { id: 'old', description: 'Receita anterior', amountCents: 10000, type: 'income', categoryId: 'salary', date: '2025-12-20' },
     { id: 'new', description: 'Despesa maior', amountCents: 20000, type: 'expense', categoryId: 'food', date: '2026-01-15' },
   ];
-  await page.goto('/'); await page.evaluate((data) => localStorage.setItem(Object.keys(localStorage).find((key) => key.startsWith('@econimizou/finance:account:'))!, JSON.stringify(data)), seed);
+  await page.goto('/'); await seedBank(page,seed); await page.evaluate((data) => localStorage.setItem(Object.keys(localStorage).find((key) => key.startsWith('@econimizou/finance:account:'))!, JSON.stringify(data)), seed);
   await page.goto('/relatorios');
   await page.getByRole('button', { name: 'Período do relatório: Escolher mês', exact: true }).click();
   await page.getByRole('button', { name: 'Mês do relatório: 01/2026', exact: true }).click();
@@ -57,7 +57,8 @@ test('etapa 17: histórico entre anos, saldo negativo e estados vazios', async (
   await page.getByRole('button', { name: 'Período do relatório: Escolher ano', exact: true }).click();
   await page.getByRole('button', { name: 'Ano do relatório: 2025', exact: true }).click();
   await expect(page.getByText('Receitas: R$ 100,00', { exact: true })).toBeVisible();
-  await page.evaluate(() => { const data = JSON.parse(localStorage.getItem(Object.keys(localStorage).find((key) => key.startsWith('@econimizou/finance:account:'))!)!); data.transactions = []; localStorage.setItem(Object.keys(localStorage).find((key) => key.startsWith('@econimizou/finance:account:'))!, JSON.stringify(data)); });
+  const empty = await page.evaluate(() => { const data = JSON.parse(localStorage.getItem(Object.keys(localStorage).find((key) => key.startsWith('@econimizou/finance:account:'))!)!); data.transactions = []; return data; });
+  await seedBank(page,empty);
   await page.reload();
   await expect(page.getByText('Sem transações no período. Altere o filtro ou registre uma receita ou despesa para visualizar os gráficos.', { exact: true })).toBeVisible();
   await expect(page.getByTestId('chart-categories')).toHaveCount(0);

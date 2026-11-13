@@ -20,6 +20,6 @@ export function AvatarPicker({ value, onChange, disabled = false }: { value: str
         <Text style={{ color: selected.id === avatar.id ? colors.primary : colors.muted, fontSize: 11 }}>{avatar.name}</Text>
       </Pressable>)}
     </View>
-    <Text style={ui.text}>Avatares Adventurer por Lisa Wischofsky / DiceBear. Créditos em Segurança e privacidade.</Text>
+    <Text style={ui.text}>Avatares Adventurer por Lisa Wischofsky / DiceBear. Créditos em Segurança e Privacidade.</Text>
   </View>;
 }

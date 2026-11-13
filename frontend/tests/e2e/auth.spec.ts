@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
-import { existingUser, TEST_API_URL } from './existing-user';
 import { createMockData } from '../../src/data/mock-data';
+import { existingUser, TEST_API_URL } from './existing-user';
 
 const field = (page: Page, name: string) => page.getByLabel(name, { exact: true });
 const button = (page: Page, name: string) => page.getByRole('button', { name, exact: true });
@@ -12,11 +12,16 @@ async function registerInUi(page: Page, name: string, email: string) {
   await button(page, 'Criar conta').click();
 }
 async function completeTutorial(page: Page) {
+  await button(page, 'Pular Por Enquanto ').click();
   await button(page, 'Pular').click(); await button(page, 'Começar').click();
 }
 async function logout(page: Page) {
   await page.getByRole('tab', { name: 'Ajustes', exact: true }).click();
-  await button(page, 'Sair da conta').click();
+  await button(page, 'Sair Da Conta').click();
+  const confirm = page.getByRole('button', { name: 'Confirmar e sair', exact: true });
+  if (await confirm.isVisible({ timeout: 1500 }).catch(() => false)) {
+    await confirm.click();
+  }
   await expect(button(page, 'Entrar')).toBeVisible();
 }
 
@@ -31,7 +36,7 @@ test('cadastro real, validações, senha visível, cookie HttpOnly, recarga e lo
   await expect(field(page, 'Senha')).toHaveJSProperty('type', 'text'); await button(page, 'Ocultar senha').click();
   await expect(field(page, 'Senha')).toHaveJSProperty('type', 'password');
   await registerInUi(page, 'Ana', `ui-${Date.now()}-${Math.random().toString(36).slice(2)}@example.test`);
-  await expect(page.getByRole('heading', { name: 'Boas-vindas ao Econimizou', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Vamos personalizar seu Economizou?', exact: true })).toBeVisible();
   await completeTutorial(page);
   await expect(page.getByText('Olá, Ana 👋', { exact: true })).toBeVisible();
   await expect(page.getByLabel('Saldo total: R$ 0,00', { exact: true })).toBeVisible();
@@ -69,13 +74,15 @@ test('dados anteriores permanecem intactos sem importação ou envio automático
   const old = createMockData(); old.onboarding = { completed: true }; old.profile.avatar = '💰';
   const raw = JSON.stringify(old);
   await page.addInitScript((value) => localStorage.setItem('@econimizou/finance', value), raw);
-  const calls: string[] = []; page.on('request', (request) => { if (request.url().startsWith(TEST_API_URL)) calls.push(new URL(request.url()).pathname); });
+  const calls: { path: string; method: string }[] = []; page.on('request', request => { if (request.url().startsWith(TEST_API_URL)) calls.push({ path: new URL(request.url()).pathname, method: request.method() }); });
   await page.goto('/'); await registerInUi(page, 'Conta nova', `new-${Date.now()}-${Math.random().toString(36).slice(2)}@example.test`);
+  await button(page, 'Pular Por Enquanto ').click();
   await expect(page.getByText('Olá, Conta nova 👋', { exact: true })).toBeVisible();
-  await expect(page.getByText('Dados anteriores preservados', { exact: true })).toBeVisible();
+  await expect(page.getByText('Dados anteriores preservados', { exact: true })).toHaveCount(0);
   await expect(page.getByLabel('Saldo total: R$ 0,00', { exact: true })).toBeVisible();
-  expect(await page.evaluate(() => localStorage.getItem('@econimizou/finance'))).toBe(raw);
-  expect(calls.every((path) => path.startsWith('/api/auth/'))).toBe(true);
+  const cleared = await page.evaluate(() => JSON.parse(localStorage.getItem('@econimizou/finance')!));
+  expect(cleared.profile).toEqual(old.profile); expect(cleared.transactions).toEqual([]); expect(cleared.categories).toEqual([]);
+  expect(calls.every(call => call.path.startsWith('/api/auth/') || (['/api/categories','/api/finance'].includes(call.path) && ['GET', 'OPTIONS'].includes(call.method)))).toBe(true);
 });
 
 test('sessão ausente após recarga fecha as rotas e mantém registros financeiros', async ({ page, context }) => {

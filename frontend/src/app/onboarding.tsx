@@ -46,7 +46,7 @@ export default function OnboardingScreen() {
   }
   return <Screen bottomSafe title={slide.title} description={slide.description}>
     <View style={[ui.card, { alignItems: 'center', paddingVertical: 28 }]}><Ionicons name={slide.icon} color={colors.primary} size={64} /><Text style={ui.text}>Etapa {step + 1} de 4</Text><View style={{ width: '100%' }}><ProgressBar value={(step + 1) * 25} label="Progresso da apresentação" /></View></View>
-    {step === 0 && <Text style={ui.text}>Suas finanças ficam neste dispositivo, separadas por conta. Dados antigos não são importados automaticamente.</Text>}
+    {step === 0 && <Text style={ui.text}>Receitas, despesas e categorias ficam na sua conta. Cadastre suas próprias categorias para começar.</Text>}
     {step === 3 && (replay ? <Text style={ui.text}>Tudo pronto, {data.profile.name}. Este tutorial não altera seu perfil nem seus registros.</Text> : <Field ref={field} label="Como podemos chamar você?" placeholder="Seu nome" maxLength={60} autoCapitalize="words" value={name} onChangeText={(value) => { setName(value); setNameError(undefined); }} error={nameError} onSubmitEditing={() => { void finish(); }} />)}
     <ErrorText error={task.error} />
     {step < 3 ? <Button label="Próximo" icon="arrow-forward" onPress={() => setStep(step + 1)} /> : <Button label={replay ? 'Concluir tutorial' : 'Começar'} icon="checkmark" loading={task.busy} onPress={() => { void finish(); }} />}

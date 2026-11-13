@@ -16,7 +16,7 @@ export default function GoalsScreen() {
   const money = (amount: number) => data.preferences.hideAmounts ? '••••••' : formatMoney(amount);
   const recommendations = data.recommendations.filter((item) => item.status === 'pending' || showReviewed);
   return <Screen title="Cada sonho, um plano." description="Dê um destino ao que você guarda, no seu ritmo.">
-    <Button label="Nova meta" icon="add" onPress={() => setEditing('new')} />
+    <Button label="Nova Meta" icon="add" onPress={() => setEditing('new')} />
     <Text style={ui.text}>Reservas demonstrativas, atualizadas por você. Criar ou editar metas não movimenta o saldo do extrato.</Text>
     {!data.goals.length && <Empty text="Qual é sua próxima conquista? Crie sua primeira meta." />}
     {data.goals.map((goal) => {
@@ -48,7 +48,7 @@ function GoalEditor({ goal, onClose }: { goal?: Goal; onClose: () => void }) {
     <Field label="Nome da meta" placeholder="Ex.: viagem de férias" value={name} onChangeText={setName} maxLength={100} />
     <Field label="Valor desejado (R$)" placeholder="0,00" keyboardType="decimal-pad" value={target} onChangeText={setTarget} />
     <Field label="Já guardado (R$)" placeholder="0,00" keyboardType="decimal-pad" value={saved} onChangeText={setSaved} />
-    <Text style={ui.text}>Informe o total reservado até agora. Este acompanhamento não cria uma transação.</Text>
+    <Text style={ui.text}>Informe o total reservado até agora. Este acompanhamento não cria uma Transação.</Text>
     <ErrorText error={task.error} />
     <Button label="Salvar meta" loading={task.busy} onPress={() => { void task.run(() => saveGoal({ name, targetCents: parseMoney(target), savedCents: parseMoney(saved, true) }, goal?.id)).then((ok) => { if (ok) onClose(); }); }} />
   </Sheet>;

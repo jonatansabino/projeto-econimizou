@@ -7,6 +7,7 @@ export type KeyValueStorage = {
   setItem(key: string, value: string): Promise<void>;
 };
 export type FinanceRepository = {
+  clearLegacy?(): Promise<void>;
   load(): Promise<FinanceData | null>;
   save(data: FinanceData): Promise<void>;
 };

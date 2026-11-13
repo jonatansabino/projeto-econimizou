@@ -13,7 +13,7 @@ O Economizou permite:
 - **Chat IA:** registrar movimentações por mensagens, como "Gastei R$ 30 no almoço".
 - **Metas:** criar objetivos para guardar dinheiro e acompanhar o progresso.
 - **Relatórios:** visualizar um resumo dos gastos e receitas.
-- **Configurações:** editar perfil, categorias e preferências.
+- **Configurações:** Editar Perfil, categorias e preferências.
 
 Cadastro, login, sessão e perfil utilizam a API CodeIgniter Shield. As finanças continuam locais, separadas por conta; o chat segue uma simulação local sem API de IA. Dados antigos permanecem preservados, sem importação automática.
 
@@ -124,7 +124,7 @@ Desenvolvedor do projeto Economizou, criado como parte de um desafio de Vibe Cod
 Desenvolvido por **Jonatan Sabino** com 💚 e apoio de IA.
 ## Avatares DiceBear
 
-O perfil usa uma galeria de 12 avatares **Adventurer** do DiceBear, com fundos adaptados ao tema escuro. Acesse **Ajustes → Editar perfil**, escolha uma opção e toque em **Salvar perfil**, que fica fixo no rodapé do modal. A prévia muda ao selecionar; Home e Ajustes usam o mesmo componente e identificador salvo no AsyncStorage.
+O perfil usa uma galeria de 12 avatares **Adventurer** do DiceBear, com fundos adaptados ao tema escuro. Acesse **Ajustes → Editar Perfil**, escolha uma opção e toque em **Salvar perfil**, que fica fixo no rodapé do modal. A prévia muda ao selecionar; Home e Ajustes usam o mesmo componente e identificador salvo no AsyncStorage.
 
 Os SVGs estão incluídos no aplicativo, sem API externa ou envio de dados do perfil. `@dicebear/core` 10.7.0 e `@dicebear/styles` 10.6.0 são dependências de desenvolvimento com versões fixas. O aplicativo usa o `react-native-svg` já instalado; o gerador DiceBear não é executado no celular.
 
@@ -134,7 +134,7 @@ npm run avatars:generate
 
 Esse comando regenera `src/data/avatar-catalog.ts` a partir de `scripts/generate-avatars.mjs`. O arquivo gerado deve permanecer no repositório. As opções têm IDs estáveis como `dicebear:adventurer:2`; `src/domain/avatar.ts` resolve tanto esses IDs quanto avatares antigos salvos como emoji. A compatibilidade dos emojis é visual: o dado antigo só é substituído pelo novo ID ao salvar o perfil. Alterar o mock continua afetando apenas novas instalações.
 
-Avatares Adventurer por **Lisa Wischofsky**, distribuídos por [DiceBear](https://www.dicebear.com/styles/adventurer/) sob [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Autoria, fonte, licença e alteração das cores de fundo também aparecem em Segurança e privacidade.
+Avatares Adventurer por **Lisa Wischofsky**, distribuídos por [DiceBear](https://www.dicebear.com/styles/adventurer/) sob [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Autoria, fonte, licença e alteração das cores de fundo também aparecem em Segurança e Privacidade.
 
 ## Conversas sobre metas e despesas
 
@@ -142,9 +142,9 @@ O Chat IA interpreta comandos por regras locais, sem enviar dados para serviços
 
 - “Quero criar uma economia para comprar um videogame”: identifica uma meta e pergunta quanto você deseja juntar. Responda, por exemplo, “R$ 3.000,00”, revise e confirme a criação.
 - “Almocei por R$ 45”: prepara uma despesa de alimentação. Se disser apenas “Almocei”, pergunta o valor antes de preparar o registro.
-- “Recebi R$ 200 de renda extra”: prepara uma receita.
+- “Recebi R$ 200 de Renda Extra”: prepara uma receita.
 
-Use os botões de confirmação ou responda “sim”/“cancelar”. Nada é salvo como meta ou transação antes da confirmação. Criar uma meta não movimenta o saldo. Transações confirmadas atualizam os totais compartilhados de Home, Extrato e Relatórios. Conversas, valores pendentes e registros são persistidos no AsyncStorage, permitindo continuar após reabrir o aplicativo.
+Use os botões de confirmação ou responda “sim”/“cancelar”. Nada é salvo como meta ou Transação antes da confirmação. Criar uma meta não movimenta o saldo. Transações confirmadas atualizam os totais compartilhados de Home, Extrato e Relatórios. Conversas, valores pendentes e registros são persistidos no AsyncStorage, permitindo continuar após reabrir o aplicativo.
 
 O assistente é uma simulação: frases ambíguas, valores inválidos ou múltiplos movimentos precisam ser esclarecidos. Ele não oferece compreensão irrestrita de linguagem natural.
 
@@ -161,3 +161,35 @@ O Android/iOS usa SecureStore; a web usa cookie HttpOnly, sem tokens no armazena
 O projeto utiliza Expo SDK 58 e as versões correspondentes de React e React Native. Para conferir e alinhar dependências, use `npx expo install --check`, `npx expo install --fix` e `npx expo-doctor`. Evite rebaixar apenas o pacote `expo` ou atualizar isoladamente React/React Native para outro SDK. Após alterações de dependências, encerre o Metro em execução e reinicie com `npx expo start --clear`.
 
 Os avatares recebem acessibilidade no componente `ProfileAvatar`: o contêiner fornece o nome da imagem; o SVG usa `aria-hidden` na web e `accessible={false}` nas plataformas nativas. O gerador remove o atributo ARIA do XML para evitar que o parser o transforme em `ariaHidden`.
+
+## Avatar e foto local — etapa 2
+
+A personalização após o cadastro e **Editar Perfil** exibem somente a imagem atual. Toque nela ou na câmera para escolher um dos 12 avatares, selecionar uma foto ou remover a foto personalizada. Confirmar a prévia altera o rascunho; **Continuar** ou **Salvar perfil** conclui a gravação. Fechar o formulário descarta o rascunho. Remover a foto restaura o último DiceBear.
+
+Fotos aceitas: JPEG, PNG e WebP até 10 MiB; HEIC/HEIF somente no seletor nativo com decodificação compatível. A imagem é recortada em quadrado e normalizada como JPEG 512 × 512, qualidade 85%, até 2 MiB. O seletor nativo oferece edição quando suportada; a Web aplica recorte central antes da prévia.
+
+Android/iOS usam documentos privados do aplicativo; a Web guarda **Blob no IndexedDB**, separado por API/conta. AsyncStorage contém somente `profile.photoRef`, uma referência relativa opcional, e `avatar`, usado como fallback. Arquivos indisponíveis/corrompidos mostram DiceBear. Fotos não são enviadas à API nem sincronizadas entre aparelhos; limpar os dados do navegador/aplicativo remove as fotos locais.
+
+As dependências nativas foram instaladas com Expo: `expo-image-picker`, `expo-file-system` e `expo-image-manipulator`. O plugin configura acesso a fotos e bloqueia câmera/microfone. Gere novamente o development build quando necessário para incorporar os módulos/configuração nativos.
+
+## Contas a pagar e a receber — Etapa 22
+
+Na Home, **Próximos compromissos → Ver todas** abre `/contas`. Cadastre previsões com descrição, categoria, valor, vencimento e observações. Os filtros usam vencimento para pendências e data efetiva para pagamentos/recebimentos. Atrasos são calculados pela data local; o total atrasado já faz parte do pendente.
+
+Confirmar pagamento/recebimento permite ajustar valor e data efetivos e cria uma única transação vinculada. Conta e transação são salvas na mesma gravação do repositório financeiro. Pendências nunca movimentam o saldo. Para contas confirmadas, **Gerenciar** oferece correção do efetivo, edição somente da previsão, desfazer confirmação ou exclusão com escolha explícita sobre manter/excluir o lançamento. Editar o lançamento no Extrato atualiza valor/data efetivos da conta; sua exclusão direta é bloqueada até usar o fluxo de Contas.
+
+A projeção da Home é uma estimativa de hoje aos próximos 30 dias: saldo atual + recebimentos pendentes − pagamentos pendentes **com vencimento dentro desse intervalo**. Atrasados anteriores ao horizonte e renda mensal planejada não entram. Valores acompanham a preferência de ocultação.
+
+Repetição mensal prepara previsões até 12 meses à frente, ampliadas ao abrir/retomar o app e na mudança de data. O dia original é preservado (31 → último dia de fevereiro → 31 em março). Um cursor persistido impede recriar ocorrências excluídas. Editar a regra altera somente pendentes futuras; encerrar impede novas ocorrências e preserva todas as já criadas. Nenhuma recorrência cria transações efetivas.
+
+As previsões continuam locais e isoladas por API/conta; suas confirmações gravam transações no banco. Os campos opcionais `commitments` e `commitmentRecurrences` são compatíveis com o formato v2 existente; não há limpeza ou conversão destrutiva. Nenhuma dependência foi adicionada. Previsões não são enviadas ao backend; os lançamentos efetivos utilizam a API financeira.
+
+## Receitas, despesas e categorias no banco
+
+Novas contas começam vazias. Cadastre suas categorias em **Ajustes → Categorias** e registre receitas/despesas no Extrato ou na Home. Os registros são gravados diretamente no MariaDB pela API autenticada e ficam disponíveis na mesma conta em outro aparelho. Não existe envio/importação de categorias antigas.
+
+O banco é a fonte principal de receitas, despesas e categorias; AsyncStorage guarda uma cópia local. A atualização do Extrato recupera os dados da conta. Sem confirmação da API não há lançamento efetivo apenas local. Chat e confirmação de contas utilizam a mesma gravação de transações, com chaves estáveis e controle de revisão para evitar duplicações.
+
+Metas, previsões, mensagens e fotos continuam locais. Perfis, preferências pessoais e login são preservados quando os registros financeiros são reiniciados. Ao abrir e conectar, o aplicativo descarta caches de uma geração anterior da base, sem reenviar os dados antigos. O comando de limpeza não é executado pelo launcher.
+
+API: GET `/api/finance` retorna categorias/transações, chave da base e revisão. POST `/api/finance/transactions` grava alterações atomicamente; categorias mantêm seus endpoints próprios. Consulte a documentação do backend.

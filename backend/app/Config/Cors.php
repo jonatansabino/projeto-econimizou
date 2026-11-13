@@ -107,8 +107,8 @@ class Cors extends BaseConfig
         parent::__construct();
         $this->default['allowedOrigins'] = config('AuthApi')->origins();
         $this->default['supportsCredentials'] = true;
-        $this->default['allowedHeaders'] = ['Authorization', 'Content-Type', 'Accept', 'X-Auth-Client', 'X-CSRF-Token'];
-        $this->default['allowedMethods'] = ['GET', 'POST', 'PATCH', 'OPTIONS'];
+        $this->default['allowedHeaders'] = ['Authorization', 'Content-Type', 'Accept', 'X-Auth-Client', 'X-CSRF-Token', 'X-Account-ID', 'X-Finance-Reset'];
+        $this->default['allowedMethods'] = ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'];
         $this->default['exposedHeaders'] = ['Retry-After'];
     }
 }

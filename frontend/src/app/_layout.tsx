@@ -32,25 +32,30 @@ function SessionGate() {
 
 function AppNavigator() {
   const { data } = useFinance();
+  const auth = useAuth();
   const needsOnboarding = data.onboarding?.completed === false;
-  return <RootNavigator signedIn needsOnboarding={needsOnboarding} />;
+  return <RootNavigator signedIn needsOnboarding={needsOnboarding} needsPersonalization={auth.user?.personalization?.completed === false} />;
 }
 
-function RootNavigator({ signedIn, needsOnboarding }: { signedIn: boolean; needsOnboarding: boolean }) {
+function RootNavigator({ signedIn, needsOnboarding, needsPersonalization = false }: { signedIn: boolean; needsOnboarding: boolean; needsPersonalization?: boolean }) {
   return <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }}>
     <Stack.Protected guard={!signedIn} redirectTo="/">
       <Stack.Screen name="login" />
       <Stack.Screen name="register" />
     </Stack.Protected>
-    <Stack.Protected guard={signedIn && !needsOnboarding} redirectTo={signedIn ? '/onboarding' : '/login'}>
+    <Stack.Protected guard={signedIn && !needsOnboarding && !needsPersonalization} redirectTo={signedIn ? needsPersonalization ? '/personalizacao' : '/onboarding' : '/login'}>
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="transacao" />
       <Stack.Screen name="relatorios" />
       <Stack.Screen name="categorias" />
       <Stack.Screen name="notificacoes" />
       <Stack.Screen name="privacidade" />
+      <Stack.Screen name="alterar-senha" />
+      <Stack.Screen name="limites" />
+      <Stack.Screen name="contas" />
       <Stack.Screen name="+not-found" />
     </Stack.Protected>
-    <Stack.Protected guard={signedIn} redirectTo="/login"><Stack.Screen name="onboarding" options={{ gestureEnabled: !needsOnboarding }} /></Stack.Protected>
+    <Stack.Protected guard={signedIn && needsPersonalization} redirectTo={signedIn ? needsOnboarding ? '/onboarding' : '/' : '/login'}><Stack.Screen name="personalizacao" options={{ gestureEnabled: false }} /></Stack.Protected>
+    <Stack.Protected guard={signedIn && !needsPersonalization} redirectTo={signedIn ? '/personalizacao' : '/login'}><Stack.Screen name="onboarding" options={{ gestureEnabled: !needsOnboarding }} /></Stack.Protected>
   </Stack>;
 }
